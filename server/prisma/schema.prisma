@@ -1,0 +1,360 @@
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:@127.0.0.1:3306/moonestates"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid()) @map("_id")
+  username     String    @unique
+  password     String
+  role         String    @default("user")
+  emailsent    Int       @default(0)
+  textsent     Int       @default(0)
+  outboundcall Int       @default(0)
+  phoneNumber  Float?
+  firstName    String?
+  lastName     String?
+  roles        Json?
+  createdDate  DateTime  @default(now())
+  updatedDate  DateTime  @updatedAt
+  deleted      Boolean   @default(false)
+
+  @@map("user_records")
+}
+
+model RoleAccess {
+  id          String   @id @default(uuid()) @map("_id")
+  roleName    String   @unique
+  access      Json?
+  description String?  @db.Text
+  modifyDate  DateTime @default(now())
+  createdDate DateTime @default(now())
+  deleted     Boolean  @default(false)
+
+  @@map("role_access_records")
+}
+
+model Lead {
+  id              String   @id @default(uuid()) @map("_id")
+  leadName        String?
+  leadEmail       String?
+  leadPhoneNumber String?
+  leadAddress     String?
+  leadStatus      String?
+  leadSource      String?
+  createBy        String?
+  assignedTo      String?
+  createdDate     DateTime @default(now())
+  updatedDate     DateTime @updatedAt
+  deleted         Boolean  @default(false)
+
+  @@map("lead_records")
+}
+
+model Contact {
+  id               String   @id @default(uuid()) @map("_id")
+  email            String?
+  phone            String?
+  title            String?
+  fullName         String?
+  physicalAddress  String?
+  interestProperty Json?
+  quotes           Json?
+  createBy         String?
+  createdDate      DateTime @default(now())
+  updatedDate      DateTime @updatedAt
+  deleted          Boolean  @default(false)
+
+  @@map("contact_records")
+}
+
+model Property {
+  id                   String   @id @default(uuid()) @map("_id")
+  propertyType         String?
+  propertyAddress      String?
+  listingPrice         String?
+  propertyPhotos       Json?
+  virtualToursOrVideos Json?
+  floorPlans           Json?
+  propertyDocuments    Json?
+  unitType             Json?
+  units                Json?
+  createBy             String?
+  createdDate          DateTime @default(now())
+  updatedDate          DateTime @updatedAt
+  deleted              Boolean  @default(false)
+
+  @@map("property_records")
+}
+
+model CustomField {
+  id          String   @id @default(uuid()) @map("_id")
+  moduleName  String   @unique
+  icon        String?
+  no          Int?
+  headings    Json?
+  fields      Json?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("custom_field_records")
+}
+
+model Account {
+  id             String   @id @default(uuid()) @map("_id")
+  name           String?
+  officePhone    Float?
+  alternatePhone Float?
+  website        String?
+  fax            String?
+  ownership      String?
+  emailAddress   String?
+  nonPrimaryEmail String?
+  billingStreet  String?
+  shippingStreet String?
+  description    String?  @db.Text
+  type           String?
+  industry       String?
+  assignUser     String?
+  createBy       String?
+  modifiedBy     String?
+  createdDate    DateTime @default(now())
+  modifiedDate   DateTime @updatedAt
+  deleted        Boolean  @default(false)
+
+  @@map("account_records")
+}
+
+model Opportunity {
+  id              String   @id @default(uuid()) @map("_id")
+  opportunityName String?
+  accountName     String?
+  amount          String?
+  stage           String?
+  probability     String?
+  closeDate       String?
+  leadSource      String?
+  description     String?  @db.Text
+  assignUser      String?
+  createBy        String?
+  createdDate     DateTime @default(now())
+  updatedDate     DateTime @updatedAt
+  deleted         Boolean  @default(false)
+
+  @@map("opportunity_records")
+}
+
+model OpportunityProject {
+  id          String   @id @default(uuid()) @map("_id")
+  projectName String?
+  createBy    String?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("opportunity_project_records")
+}
+
+model Invoice {
+  id            String   @id @default(uuid()) @map("_id")
+  title         String?
+  invoiceNumber String?
+  status        String?
+  grandTotal    String?
+  items         Json?
+  account       String?
+  contact       String?
+  createBy      String?
+  createdDate   DateTime @default(now())
+  updatedDate   DateTime @updatedAt
+  deleted       Boolean  @default(false)
+
+  @@map("invoice_records")
+}
+
+model Quote {
+  id          String   @id @default(uuid()) @map("_id")
+  title       String?
+  quoteNumber String?
+  status      String?
+  grandTotal  String?
+  items       Json?
+  account     String?
+  contact     String?
+  createBy    String?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("quote_records")
+}
+
+model Task {
+  id              String   @id @default(uuid()) @map("_id")
+  title           String?
+  category        String?
+  description     String?  @db.Text
+  notes           String?  @db.Text
+  assignTo        String?
+  assignToLead    String?
+  reminder        String?
+  start           String?
+  end             String?
+  backgroundColor String?
+  borderColor     String?
+  textColor       String?
+  display         String?
+  url             String?
+  allDay          Boolean?
+  createBy        String?
+  status          String   @default("todo")
+  createdDate     DateTime @default(now())
+  updatedDate     DateTime @updatedAt
+  deleted         Boolean  @default(false)
+
+  @@map("task_records")
+}
+
+model Meeting {
+  id           String   @id @default(uuid()) @map("_id")
+  agenda       String?
+  attendes     Json?
+  attendesLead Json?
+  location     String?
+  related      String?
+  dateTime     String?
+  notes        String?  @db.Text
+  createBy     String?
+  createdDate  DateTime @default(now())
+  updatedDate  DateTime @updatedAt
+  deleted      Boolean  @default(false)
+
+  @@map("meeting_records")
+}
+
+model PhoneCall {
+  id            String   @id @default(uuid()) @map("_id")
+  sender        String?
+  recipient     String?
+  callDuration  String?
+  startDate     String?
+  endDate       String?
+  createByLead  String?
+  createBy      String?
+  createByContact String?
+  callNotes     String?  @db.Text
+  createdDate   DateTime @default(now())
+  updatedDate   DateTime @updatedAt
+  deleted       Boolean  @default(false)
+
+  @@map("phone_call_records")
+}
+
+model Email {
+  id            String   @id @default(uuid()) @map("_id")
+  sender        String?
+  recipient     String?
+  subject       String?
+  message       String?  @db.Text
+  createByLead  String?
+  createBy      String?
+  createByContact String?
+  html          String?  @db.Text
+  createdDate   DateTime @default(now())
+  updatedDate   DateTime @updatedAt
+  deleted       Boolean  @default(false)
+
+  @@map("email_records")
+}
+
+model TextMsg {
+  id            String   @id @default(uuid()) @map("_id")
+  sender        String?
+  to            String?
+  message       String?  @db.Text
+  createByLead  String?
+  createBy      String?
+  createByContact String?
+  createdDate   DateTime @default(now())
+  updatedDate   DateTime @updatedAt
+  deleted       Boolean  @default(false)
+
+  @@map("text_msg_records")
+}
+
+model Document {
+  id          String   @id @default(uuid()) @map("_id")
+  folderName  String?
+  files       Json?
+  createBy    String?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("document_records")
+}
+
+model Validation {
+  id          String   @id @default(uuid()) @map("_id")
+  name        String?
+  value       String?
+  message     String?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("validation_records")
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid()) @map("_id")
+  name        String?
+  subject     String?
+  html        String?  @db.Text
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("email_template_records")
+}
+
+model ModuleActiveDeactive {
+  id          String   @id @default(uuid()) @map("_id")
+  moduleName  String?
+  isActive    Boolean  @default(true)
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("module_active_records")
+}
+
+model BankDetails {
+  id            String   @id @default(uuid()) @map("_id")
+  bankName      String?
+  accountNumber String?
+  ifscCode      String?
+  branch        String?
+  createdDate   DateTime @default(now())
+  updatedDate   DateTime @updatedAt
+  deleted       Boolean  @default(false)
+
+  @@map("bank_details_records")
+}
+
+model ImagesSchema {
+  id          String   @id @default(uuid()) @map("_id")
+  authImg     String?
+  logoImg     String?
+  logoSmImg   String?
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@map("images_schema_records")
+}
