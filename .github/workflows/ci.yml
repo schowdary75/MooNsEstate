@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: moonestates_test
+          MYSQL_USER: moonestates
+          MYSQL_PASSWORD: local_ci_password # pragma: allowlist secret
+          MYSQL_ROOT_PASSWORD: local_ci_root_password # pragma: allowlist secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -plocal_ci_root_password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DATABASE_URL: mysql://moonestates:local_ci_password@127.0.0.1:3306/moonestates_test # pragma: allowlist secret
+      JWT_SECRET: ci-only-session-key-with-more-than-thirty-two-characters # pragma: allowlist secret
+      INTEGRATION_ENCRYPTION_KEY: ci-only-integration-key-with-more-than-thirty-two-characters
+      SEED_ADMIN_EMAIL: admin@example.test
+      SEED_ADMIN_PASSWORD: local-ci-password-not-for-production # pragma: allowlist secret
+      NODE_ENV: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate schema
+        run: npm run prisma:validate --workspace moonestates-server
+
+      - name: Create test database
+        run: npx prisma db push --schema server/prisma/schema.prisma --skip-generate
+
+      - name: Create test workspace
+        run: npm run admin:reset --workspace moonestates-server
+
+      - name: Seed test data
+        run: npm run seed:demo --workspace moonestates-server
+
+      - name: Test
+        run: npm test --workspaces --if-present
+
+      - name: Build
+        run: npm run build

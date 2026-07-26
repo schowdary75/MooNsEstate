@@ -1,6 +1,6 @@
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@127.0.0.1:3306/moonestates"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -22,41 +22,195 @@ model User {
   createdDate  DateTime  @default(now())
   updatedDate  DateTime  @updatedAt
   deleted      Boolean   @default(false)
+  memberships  Membership[]
+  sessions     Session[]
 
   @@map("user_records")
 }
 
+model Organization {
+  id                    String       @id @default(uuid()) @map("_id")
+  name                  String
+  slug                  String       @unique
+  currency              String       @default("INR")
+  timezone              String       @default("Asia/Kolkata")
+  locale                String       @default("en-IN")
+  logoUrl               String?
+  primaryColor          String       @default("#0a0a0a")
+  portalEnabled         Boolean      @default(true)
+  subscriptionProvider  String       @default("razorpay")
+  recordingRetentionDays Int         @default(180)
+  createdDate           DateTime     @default(now())
+  updatedDate           DateTime     @updatedAt
+  deleted               Boolean      @default(false)
+  memberships           Membership[]
+  sessions              Session[]
+  subscriptions         Subscription[]
+  roles                 Role[]
+  permissions           Permission[]
+
+  @@map("organization_records")
+}
+
+model OrganizationDomain {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  hostname       String   @unique
+  verified       Boolean  @default(false)
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("organization_domain_records")
+}
+
+model Membership {
+  id             String       @id @default(uuid()) @map("_id")
+  organizationId String
+  userId         String
+  role           String       @default("agent")
+  roleId         String?
+  status         String       @default("active")
+  createdDate    DateTime     @default(now())
+  updatedDate    DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleRecord     Role?        @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("membership_records")
+}
+
+model Role {
+  id             String           @id @default(uuid()) @map("_id")
+  organizationId String
+  name           String
+  label          String
+  description    String?          @db.Text
+  system         Boolean          @default(false)
+  createdDate    DateTime         @default(now())
+  updatedDate    DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships    Membership[]
+  permissions    RolePermission[]
+
+  @@unique([organizationId, name])
+  @@map("role_records")
+}
+
+model Permission {
+  id             String           @id @default(uuid()) @map("_id")
+  organizationId String
+  key            String
+  description    String?          @db.Text
+  createdDate    DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roles          RolePermission[]
+
+  @@unique([organizationId, key])
+  @@map("permission_records")
+}
+
+model RolePermission {
+  id             String     @id @default(uuid()) @map("_id")
+  organizationId String
+  roleId         String
+  permissionId   String
+  role           Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission     Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdDate    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([organizationId])
+  @@map("role_permission_records")
+}
+
+model Session {
+  id             String        @id @default(uuid()) @map("_id")
+  tokenHash      String        @unique
+  userId         String
+  organizationId String?
+  userAgent      String?       @db.Text
+  ipAddress      String?
+  expiresAt      DateTime
+  lastSeenAt     DateTime      @default(now())
+  revokedAt      DateTime?
+  createdDate    DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, expiresAt])
+  @@index([organizationId])
+  @@map("session_records")
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String?
+  actorUserId    String?
+  action         String
+  entityType     String?
+  entityId       String?
+  ipAddress      String?
+  metadata       Json?
+  createdDate    DateTime @default(now())
+
+  @@index([organizationId, createdDate])
+  @@index([actorUserId, createdDate])
+  @@map("audit_event_records")
+}
+
 model RoleAccess {
   id          String   @id @default(uuid()) @map("_id")
-  roleName    String   @unique
+  organizationId String
+  roleName    String
   access      Json?
   description String?  @db.Text
   modifyDate  DateTime @default(now())
   createdDate DateTime @default(now())
   deleted     Boolean  @default(false)
 
+  @@unique([organizationId, roleName])
   @@map("role_access_records")
 }
 
 model Lead {
   id              String   @id @default(uuid()) @map("_id")
+  organizationId  String
   leadName        String?
   leadEmail       String?
   leadPhoneNumber String?
+  phoneE164       String?
   leadAddress     String?
   leadStatus      String?
   leadSource      String?
+  priority        String   @default("Medium")
+  notes           String?  @db.Text
+  nextFollowUpDate DateTime?
+  firstResponseDueAt DateTime?
+  firstRespondedAt DateTime?
+  convertedAt     DateTime?
+  consentStatus   String   @default("unknown")
+  preferredLanguage String @default("en-IN")
+  metaLeadId      String?
   createBy        String?
   assignedTo      String?
   createdDate     DateTime @default(now())
   updatedDate     DateTime @updatedAt
   deleted         Boolean  @default(false)
 
+  @@unique([organizationId, metaLeadId])
+  @@index([organizationId, createdDate])
+  @@index([organizationId, phoneE164])
+  @@index([organizationId, leadEmail])
   @@map("lead_records")
 }
 
 model Contact {
   id               String   @id @default(uuid()) @map("_id")
+  organizationId   String
   email            String?
   phone            String?
   title            String?
@@ -69,15 +223,43 @@ model Contact {
   updatedDate      DateTime @updatedAt
   deleted          Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("contact_records")
 }
 
 model Property {
   id                   String   @id @default(uuid()) @map("_id")
+  organizationId       String
+  slug                 String?
   propertyType         String?
+  title                String?
+  builder              String?
   propertyAddress      String?
+  location             String?
   listingPrice         String?
+  towerName            String?
+  totalFloors          Int?
+  floorNumber          Int?
+  unitNumber           String?
+  bedrooms             Int?
+  bathrooms            Int?
+  carpetArea           Int?
+  facing               String?
+  status               String?
+  reraId               String?
+  latitude             Float?
+  longitude            Float?
+  possessionDate       DateTime?
+  published            Boolean  @default(false)
+  priceUpdatedAt       DateTime?
+  description          String?  @db.Text
   propertyPhotos       Json?
+  photoLivingRoom      String?
+  photoKitchen         String?
+  photoRoom1           String?
+  photoRoom2           String?
+  photoWashroom        String?
+  photoBalcony         String?
   virtualToursOrVideos Json?
   floorPlans           Json?
   propertyDocuments    Json?
@@ -88,12 +270,15 @@ model Property {
   updatedDate          DateTime @updatedAt
   deleted              Boolean  @default(false)
 
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
   @@map("property_records")
 }
 
 model CustomField {
   id          String   @id @default(uuid()) @map("_id")
-  moduleName  String   @unique
+  organizationId String
+  moduleName  String
   icon        String?
   no          Int?
   headings    Json?
@@ -102,11 +287,13 @@ model CustomField {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@unique([organizationId, moduleName])
   @@map("custom_field_records")
 }
 
 model Account {
   id             String   @id @default(uuid()) @map("_id")
+  organizationId String
   name           String?
   officePhone    Float?
   alternatePhone Float?
@@ -127,11 +314,14 @@ model Account {
   modifiedDate   DateTime @updatedAt
   deleted        Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("account_records")
 }
 
 model Opportunity {
   id              String   @id @default(uuid()) @map("_id")
+  organizationId  String
+  leadId          String?
   opportunityName String?
   accountName     String?
   amount          String?
@@ -146,22 +336,27 @@ model Opportunity {
   updatedDate     DateTime @updatedAt
   deleted         Boolean  @default(false)
 
+  @@index([organizationId, stage])
+  @@index([leadId])
   @@map("opportunity_records")
 }
 
 model OpportunityProject {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   projectName String?
   createBy    String?
   createdDate DateTime @default(now())
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("opportunity_project_records")
 }
 
 model Invoice {
   id            String   @id @default(uuid()) @map("_id")
+  organizationId String
   title         String?
   invoiceNumber String?
   status        String?
@@ -174,11 +369,13 @@ model Invoice {
   updatedDate   DateTime @updatedAt
   deleted       Boolean  @default(false)
 
+  @@index([organizationId, status])
   @@map("invoice_records")
 }
 
 model Quote {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   title       String?
   quoteNumber String?
   status      String?
@@ -191,11 +388,13 @@ model Quote {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId, status])
   @@map("quote_records")
 }
 
 model Task {
   id              String   @id @default(uuid()) @map("_id")
+  organizationId  String
   title           String?
   category        String?
   description     String?  @db.Text
@@ -217,11 +416,13 @@ model Task {
   updatedDate     DateTime @updatedAt
   deleted         Boolean  @default(false)
 
+  @@index([organizationId, status])
   @@map("task_records")
 }
 
 model Meeting {
   id           String   @id @default(uuid()) @map("_id")
+  organizationId String
   agenda       String?
   attendes     Json?
   attendesLead Json?
@@ -234,11 +435,13 @@ model Meeting {
   updatedDate  DateTime @updatedAt
   deleted      Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("meeting_records")
 }
 
 model PhoneCall {
   id            String   @id @default(uuid()) @map("_id")
+  organizationId String
   sender        String?
   recipient     String?
   callDuration  String?
@@ -252,11 +455,13 @@ model PhoneCall {
   updatedDate   DateTime @updatedAt
   deleted       Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("phone_call_records")
 }
 
 model Email {
   id            String   @id @default(uuid()) @map("_id")
+  organizationId String
   sender        String?
   recipient     String?
   subject       String?
@@ -269,11 +474,13 @@ model Email {
   updatedDate   DateTime @updatedAt
   deleted       Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("email_records")
 }
 
 model TextMsg {
   id            String   @id @default(uuid()) @map("_id")
+  organizationId String
   sender        String?
   to            String?
   message       String?  @db.Text
@@ -284,11 +491,13 @@ model TextMsg {
   updatedDate   DateTime @updatedAt
   deleted       Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("text_msg_records")
 }
 
 model Document {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   folderName  String?
   files       Json?
   createBy    String?
@@ -296,11 +505,13 @@ model Document {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId, createdDate])
   @@map("document_records")
 }
 
 model Validation {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   name        String?
   value       String?
   message     String?
@@ -308,11 +519,13 @@ model Validation {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("validation_records")
 }
 
 model EmailTemplate {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   name        String?
   subject     String?
   html        String?  @db.Text
@@ -320,22 +533,26 @@ model EmailTemplate {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("email_template_records")
 }
 
 model ModuleActiveDeactive {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   moduleName  String?
   isActive    Boolean  @default(true)
   createdDate DateTime @default(now())
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("module_active_records")
 }
 
 model BankDetails {
   id            String   @id @default(uuid()) @map("_id")
+  organizationId String
   bankName      String?
   accountNumber String?
   ifscCode      String?
@@ -344,11 +561,13 @@ model BankDetails {
   updatedDate   DateTime @updatedAt
   deleted       Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("bank_details_records")
 }
 
 model ImagesSchema {
   id          String   @id @default(uuid()) @map("_id")
+  organizationId String
   authImg     String?
   logoImg     String?
   logoSmImg   String?
@@ -356,5 +575,783 @@ model ImagesSchema {
   updatedDate DateTime @updatedAt
   deleted     Boolean  @default(false)
 
+  @@index([organizationId])
   @@map("images_schema_records")
+}
+
+model FollowUp {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String
+  ownerId        String?
+  followUpType   String
+  followUpDate   DateTime
+  priority       String   @default("medium")
+  status         String   @default("pending")
+  notes          String?  @db.Text
+  outcome        String?  @db.Text
+  providerJobId  String?
+  failureReason  String?  @db.Text
+  completedAt    DateTime?
+  createdBy      String?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+  deleted        Boolean  @default(false)
+
+  @@index([organizationId, followUpDate])
+  @@index([leadId, status])
+  @@map("follow_up_records")
+}
+
+model AutomationSequence {
+  id                String   @id @default(uuid()) @map("_id")
+  organizationId    String
+  name              String
+  description       String?  @db.Text
+  triggerType       String   @default("manual")
+  steps             Json
+  status            String   @default("active")
+  pauseOnConversion Boolean  @default(true)
+  createdBy         String?
+  createdDate       DateTime @default(now())
+  updatedDate       DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@map("automation_sequence_records")
+}
+
+model AutomationEnrollment {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  sequenceId     String
+  leadId         String
+  status         String   @default("active")
+  currentStep    Int      @default(0)
+  nextRunAt      DateTime?
+  pausedReason   String?  @db.Text
+  lastError      String?  @db.Text
+  createdBy      String?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId, status, nextRunAt], map: "automation_enrollment_org_status_run_idx")
+  @@index([leadId, createdDate])
+  @@map("automation_enrollment_records")
+}
+
+model ActivityEvent {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String?
+  contactId      String?
+  propertyId     String?
+  actorUserId    String?
+  type           String
+  title          String
+  description    String?  @db.Text
+  metadata       Json?
+  occurredAt     DateTime @default(now())
+  createdDate    DateTime @default(now())
+
+  @@index([organizationId, occurredAt])
+  @@index([leadId, occurredAt])
+  @@map("activity_event_records")
+}
+
+model ConsentRecord {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String?
+  buyerProfileId String?
+  channel        String
+  purpose        String
+  status         String
+  source         String?
+  proof          Json?
+  capturedAt     DateTime @default(now())
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+
+  @@index([organizationId, channel, status])
+  @@index([leadId])
+  @@map("consent_record_records")
+}
+
+model SuppressionEntry {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  channel        String
+  address        String
+  reason         String
+  provider       String?
+  createdDate    DateTime @default(now())
+
+  @@unique([organizationId, channel, address])
+  @@map("suppression_entry_records")
+}
+
+model ReconciliationItem {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  channel        String
+  identifier     String
+  candidateLeadIds Json
+  payload        Json
+  status         String   @default("pending")
+  resolvedLeadId String?
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId, status, createdDate], map: "reconciliation_org_status_created_idx")
+  @@map("reconciliation_item_records")
+}
+
+model ChannelAccount {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  channel        String
+  provider       String
+  displayName    String?
+  externalId     String?
+  status         String   @default("setup_required")
+  encryptedConfig String? @db.LongText
+  lastHealthAt   DateTime?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, channel, provider])
+  @@map("channel_account_records")
+}
+
+model Conversation {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  channelAccountId      String?
+  leadId                String?
+  contactId             String?
+  channel               String
+  providerConversationId String?
+  subject               String?
+  status                String   @default("open")
+  priority              String   @default("normal")
+  assignedTo            String?
+  unreadCount           Int      @default(0)
+  customerWindowEndsAt  DateTime?
+  lastMessageAt         DateTime?
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@index([organizationId, status, lastMessageAt])
+  @@index([leadId, channel])
+  @@map("conversation_records")
+}
+
+model Message {
+  id                String   @id @default(uuid()) @map("_id")
+  organizationId    String
+  conversationId    String
+  providerMessageId String?
+  direction         String
+  type              String   @default("text")
+  sender            String?
+  recipient         String?
+  text              String?  @db.LongText
+  html              String?  @db.LongText
+  templateName      String?
+  status            String   @default("queued")
+  replyToMessageId  String?
+  errorCode         String?
+  errorMessage      String?  @db.Text
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  failedAt          DateTime?
+  createdBy         String?
+  metadata          Json?
+  createdDate       DateTime @default(now())
+  updatedDate       DateTime @updatedAt
+
+  @@unique([organizationId, providerMessageId])
+  @@index([conversationId, createdDate])
+  @@map("message_records")
+}
+
+model MessageAttachment {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  messageId      String
+  fileName       String?
+  mimeType       String?
+  sizeBytes      Int?
+  storageKey     String?
+  providerMediaId String?
+  externalUrl    String?  @db.Text
+  createdDate    DateTime @default(now())
+
+  @@index([messageId])
+  @@map("message_attachment_records")
+}
+
+model DeliveryEvent {
+  id              String   @id @default(uuid()) @map("_id")
+  organizationId  String
+  messageId       String?
+  providerEventId String?
+  status          String
+  payload         Json?
+  occurredAt      DateTime
+  createdDate     DateTime @default(now())
+
+  @@unique([organizationId, providerEventId])
+  @@index([messageId, occurredAt])
+  @@map("delivery_event_records")
+}
+
+model ProviderWebhookEvent {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String?
+  provider       String
+  externalEventId String
+  eventType      String?
+  status         String   @default("received")
+  payload        Json
+  errorMessage   String?  @db.Text
+  processedAt    DateTime?
+  receivedAt     DateTime @default(now())
+
+  @@unique([provider, externalEventId])
+  @@index([provider, status, receivedAt])
+  @@map("provider_webhook_event_records")
+}
+
+model CallRecord {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String?
+  contactId      String?
+  provider       String   @default("exotel")
+  providerCallId String?
+  direction      String
+  fromNumber     String?
+  toNumber       String?
+  agentUserId    String?
+  status         String   @default("queued")
+  startedAt      DateTime?
+  answeredAt     DateTime?
+  endedAt        DateTime?
+  durationSeconds Int?
+  consentedToRecording Boolean @default(false)
+  notes          String?  @db.Text
+  metadata       Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, providerCallId])
+  @@index([leadId, createdDate])
+  @@map("call_record_records")
+}
+
+model CallRecording {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  callId         String   @unique
+  storageKey     String?
+  providerUrl    String?  @db.Text
+  mimeType       String?
+  durationSeconds Int?
+  retentionUntil DateTime?
+  legalHold      Boolean  @default(false)
+  createdDate    DateTime @default(now())
+
+  @@index([organizationId, retentionUntil])
+  @@map("call_recording_records")
+}
+
+model Transcript {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  callId         String   @unique
+  provider       String   @default("sarvam")
+  providerJobId  String?
+  languageCode   String?
+  status         String   @default("queued")
+  text           String?  @db.LongText
+  diarized       Json?
+  timestamps     Json?
+  errorMessage   String?  @db.Text
+  completedAt    DateTime?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@map("transcript_records")
+}
+
+model EmailThread {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  conversationId String   @unique
+  providerThreadId String?
+  rootMessageId  String?
+  references     Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("email_thread_records")
+}
+
+model IntegrationConnection {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  provider       String
+  status         String   @default("setup_required")
+  encryptedConfig String? @db.LongText
+  externalAccountId String?
+  expiresAt      DateTime?
+  lastSyncAt     DateTime?
+  lastError      String?  @db.Text
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, provider])
+  @@map("integration_connection_records")
+}
+
+model MetaCampaign {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  externalId     String
+  name           String
+  objective      String?
+  status         String?
+  effectiveStatus String?
+  dailyBudget    String?
+  lifetimeBudget String?
+  raw            Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@map("meta_campaign_records")
+}
+
+model MetaAdSet {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  externalId     String
+  campaignExternalId String
+  name           String
+  status         String?
+  targetingSummary Json?
+  raw            Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, campaignExternalId])
+  @@map("meta_ad_set_records")
+}
+
+model MetaAd {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  externalId     String
+  campaignExternalId String
+  adSetExternalId String
+  name           String
+  status         String?
+  creativeId     String?
+  creativePreviewUrl String? @db.Text
+  raw            Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, adSetExternalId])
+  @@map("meta_ad_records")
+}
+
+model MetaLeadForm {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  externalId     String
+  pageExternalId String?
+  name           String
+  status         String?
+  questions      Json?
+  raw            Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@map("meta_lead_form_records")
+}
+
+model MetaLeadSubmission {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  externalId     String
+  leadId         String?
+  campaignExternalId String?
+  adSetExternalId String?
+  adExternalId   String?
+  formExternalId String?
+  pageExternalId String?
+  fieldData      Json?
+  raw            Json
+  submittedAt    DateTime?
+  hydratedAt     DateTime?
+  status         String   @default("received")
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@index([leadId])
+  @@map("meta_lead_submission_records")
+}
+
+model MetaInsightDaily {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  level          String
+  objectExternalId String
+  insightDate    DateTime
+  campaignExternalId String?
+  adSetExternalId String?
+  adExternalId   String?
+  spend          Decimal  @default(0) @db.Decimal(18, 4)
+  impressions    Int      @default(0)
+  reach          Int      @default(0)
+  frequency      Decimal  @default(0) @db.Decimal(18, 4)
+  clicks         Int      @default(0)
+  linkClicks     Int      @default(0)
+  leads          Int      @default(0)
+  landingPageViews Int    @default(0)
+  messagingConversations Int @default(0)
+  actions        Json?
+  breakdowns     Json?
+  raw            Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, level, objectExternalId, insightDate])
+  @@index([organizationId, insightDate])
+  @@map("meta_insight_daily_records")
+}
+
+model AttributionTouch {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String
+  source         String
+  campaignExternalId String?
+  adSetExternalId String?
+  adExternalId   String?
+  formExternalId String?
+  referral       Json?
+  occurredAt     DateTime @default(now())
+  createdDate    DateTime @default(now())
+
+  @@index([leadId, occurredAt])
+  @@map("attribution_touch_records")
+}
+
+model ConversionDispatch {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String
+  eventName      String
+  eventId        String
+  provider       String   @default("meta")
+  status         String   @default("queued")
+  payload        Json
+  attempts       Int      @default(0)
+  lastError      String?  @db.Text
+  dispatchedAt   DateTime?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, eventId])
+  @@index([status, createdDate])
+  @@map("conversion_dispatch_records")
+}
+
+model BuyerProfile {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  email          String?
+  phoneE164      String?
+  fullName       String?
+  preferredLanguage String @default("en-IN")
+  budgetMin      Decimal? @db.Decimal(18, 2)
+  budgetMax      Decimal? @db.Decimal(18, 2)
+  preferences    Json?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([organizationId, phoneE164])
+  @@map("buyer_profile_records")
+}
+
+model PasswordlessToken {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  buyerProfileId String?
+  email          String
+  tokenHash      String   @unique
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdDate    DateTime @default(now())
+
+  @@index([organizationId, email])
+  @@map("passwordless_token_records")
+}
+
+model Shortlist {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  buyerProfileId String
+  name           String   @default("My shortlist")
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([buyerProfileId])
+  @@map("shortlist_records")
+}
+
+model ShortlistItem {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  shortlistId    String
+  propertyId     String
+  notes          String?  @db.Text
+  createdDate    DateTime @default(now())
+
+  @@unique([shortlistId, propertyId])
+  @@index([organizationId, propertyId])
+  @@map("shortlist_item_records")
+}
+
+model SiteVisit {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  leadId         String?
+  buyerProfileId String?
+  propertyId     String
+  assignedTo     String?
+  scheduledAt    DateTime
+  status         String   @default("scheduled")
+  notes          String?  @db.Text
+  outcome        String?  @db.Text
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@index([organizationId, scheduledAt])
+  @@index([leadId])
+  @@map("site_visit_records")
+}
+
+model RealEstateProject {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  name           String
+  slug           String
+  builder        String?
+  location       String?
+  address        String?  @db.Text
+  reraId         String?
+  latitude       Float?
+  longitude      Float?
+  possessionDate DateTime?
+  published      Boolean  @default(false)
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@map("real_estate_project_records")
+}
+
+model PropertyTower {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  projectId      String
+  name           String
+  totalFloors    Int
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([organizationId])
+  @@map("property_tower_records")
+}
+
+model PropertyFloor {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  towerId        String
+  floorNumber    Int
+  label          String?
+  createdDate    DateTime @default(now())
+
+  @@unique([towerId, floorNumber])
+  @@index([organizationId])
+  @@map("property_floor_records")
+}
+
+model PropertyUnit {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  floorId        String
+  propertyId     String?
+  unitNumber     String
+  bedrooms       Int?
+  bathrooms      Int?
+  carpetArea     Int?
+  facing         String?
+  listingPrice   Decimal? @db.Decimal(18, 2)
+  status         String   @default("Available")
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([floorId, unitNumber])
+  @@index([organizationId, status])
+  @@map("property_unit_records")
+}
+
+model PropertyMedia {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  propertyId     String
+  type           String
+  url            String   @db.Text
+  label          String?
+  sortOrder      Int      @default(0)
+  createdDate    DateTime @default(now())
+
+  @@index([propertyId, sortOrder])
+  @@map("property_media_records")
+}
+
+model FloorPlan {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  propertyId     String
+  name           String?
+  url            String   @db.Text
+  metadata       Json?
+  createdDate    DateTime @default(now())
+
+  @@index([propertyId])
+  @@map("floor_plan_records")
+}
+
+model AvailabilityEvent {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  propertyUnitId String
+  fromStatus     String?
+  toStatus       String
+  actorUserId    String?
+  occurredAt     DateTime @default(now())
+
+  @@index([propertyUnitId, occurredAt])
+  @@map("availability_event_records")
+}
+
+model Plan {
+  id                String   @id @default(uuid()) @map("_id")
+  code              String   @unique
+  name              String
+  description       String?  @db.Text
+  currency          String   @default("INR")
+  monthlyPrice      Decimal  @default(0) @db.Decimal(18, 2)
+  annualPrice       Decimal  @default(0) @db.Decimal(18, 2)
+  razorpayMonthlyPlanId String?
+  razorpayAnnualPlanId String?
+  stripeMonthlyPriceId String?
+  stripeAnnualPriceId String?
+  includedSeats     Int      @default(1)
+  includedLeads     Int      @default(1000)
+  includedStorageMb Int      @default(1024)
+  includedMessages  Int      @default(1000)
+  includedTranscriptionMinutes Int @default(60)
+  features          Json?
+  active            Boolean  @default(true)
+  createdDate       DateTime @default(now())
+  updatedDate       DateTime @updatedAt
+
+  @@map("plan_records")
+}
+
+model Subscription {
+  id             String       @id @default(uuid()) @map("_id")
+  organizationId String
+  planId         String
+  provider       String
+  providerCustomerId String?
+  providerSubscriptionId String?
+  status         String       @default("trialing")
+  billingInterval String      @default("monthly")
+  quantity       Int          @default(1)
+  trialEndsAt    DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd DateTime?
+  graceEndsAt    DateTime?
+  cancelAtPeriodEnd Boolean   @default(false)
+  createdDate    DateTime     @default(now())
+  updatedDate    DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubscriptionId])
+  @@index([organizationId, status])
+  @@map("subscription_records")
+}
+
+model Entitlement {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  key            String
+  value          String
+  source         String   @default("plan")
+  expiresAt      DateTime?
+  createdDate    DateTime @default(now())
+  updatedDate    DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@map("entitlement_records")
+}
+
+model UsageLedger {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String
+  usageType      String
+  quantity       Decimal  @db.Decimal(18, 4)
+  referenceType  String?
+  referenceId    String?
+  occurredAt     DateTime @default(now())
+  metadata       Json?
+
+  @@index([organizationId, usageType, occurredAt])
+  @@map("usage_ledger_records")
+}
+
+model BillingEvent {
+  id             String   @id @default(uuid()) @map("_id")
+  organizationId String?
+  provider       String
+  providerEventId String
+  eventType      String
+  status         String   @default("received")
+  payload        Json
+  processedAt    DateTime?
+  createdDate    DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([organizationId, createdDate])
+  @@map("billing_event_records")
 }

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/schowdary75/MooNsEstate/security/advisories/new
+    about: Report vulnerabilities privately. Do not open an issue.

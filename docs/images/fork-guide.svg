@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">Private fork contribution workflow</title>
+  <desc id="desc">Fork privately, create a branch, push changes, and open a pull request.</desc>
+  <rect width="1200" height="300" rx="24" fill="#f8fafc"/>
+  <text x="52" y="56" fill="#0f172a" font-family="Arial, sans-serif" font-size="26" font-weight="700">Private fork → reviewed contribution</text>
+  <path d="M140 166h900" stroke="#ddd6fe" stroke-width="10" stroke-linecap="round"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <g transform="translate(150 160)">
+      <circle r="56" fill="#111827"/><path d="M-18-18v22c0 16 12 28 28 28M-18-5l-14-14m14 14 14-14M10 32v-20M10 12l-11 11m11-11 11 11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text y="88" fill="#0f172a" font-size="19" font-weight="700">1. Fork privately</text>
+      <text y="113" fill="#64748b" font-size="14">Never make the copy public</text>
+    </g>
+    <g transform="translate(450 160)">
+      <circle r="56" fill="#7c3aed"/><path d="M-24 18 20-26m-37 4-9 9 12 12 9-9m18 18-9 9 12 12 9-9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text y="88" fill="#0f172a" font-size="19" font-weight="700">2. Create a branch</text>
+      <text y="113" fill="#64748b" font-size="14">One focused change</text>
+    </g>
+    <g transform="translate(750 160)">
+      <circle r="56" fill="#2563eb"/><path d="M0 27V-24m0 0-18 18m18-18L18-6M-25 27h50" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text y="88" fill="#0f172a" font-size="19" font-weight="700">3. Test and push</text>
+      <text y="113" fill="#64748b" font-size="14">No secrets or customer data</text>
+    </g>
+    <g transform="translate(1050 160)">
+      <circle r="56" fill="#059669"/><path d="M-26-13h52v38h-52zM-10-13v-14h20v14M-13 6h26" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text y="88" fill="#0f172a" font-size="19" font-weight="700">4. Open a PR</text>
+      <text y="113" fill="#64748b" font-size="14">CI, review, then merge</text>
+    </g>
+  </g>
+</svg>

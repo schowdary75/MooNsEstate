@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">MooNsEstate local installation</title>
+  <desc id="desc">Four steps: clone, start, open in a browser, and stop.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#24104f"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity=".25"/></filter>
+  </defs>
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+  <text x="52" y="56" fill="#fff" font-family="Arial, sans-serif" font-size="26" font-weight="700">Local setup in four steps</text>
+  <g font-family="Arial, sans-serif" filter="url(#shadow)">
+    <g transform="translate(50 90)">
+      <rect width="235" height="150" rx="18" fill="#fff"/>
+      <circle cx="36" cy="34" r="20" fill="#7c3aed"/><text x="36" y="42" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">1</text>
+      <text x="24" y="86" fill="#111827" font-size="21" font-weight="700">Clone</text>
+      <text x="24" y="117" fill="#475569" font-size="15">Get your authorized</text><text x="24" y="138" fill="#475569" font-size="15">private copy from GitHub.</text>
+    </g>
+    <path d="M297 165h35" stroke="#a78bfa" stroke-width="5"/><path d="m324 154 12 11-12 11" fill="none" stroke="#a78bfa" stroke-width="5"/>
+    <g transform="translate(345 90)">
+      <rect width="235" height="150" rx="18" fill="#fff"/>
+      <circle cx="36" cy="34" r="20" fill="#7c3aed"/><text x="36" y="42" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">2</text>
+      <text x="24" y="86" fill="#111827" font-size="21" font-weight="700">Run ./start.sh</text>
+      <text x="24" y="117" fill="#475569" font-size="15">Database, dependencies,</text><text x="24" y="138" fill="#475569" font-size="15">migrations, app—handled.</text>
+    </g>
+    <path d="M592 165h35" stroke="#a78bfa" stroke-width="5"/><path d="m619 154 12 11-12 11" fill="none" stroke="#a78bfa" stroke-width="5"/>
+    <g transform="translate(640 90)">
+      <rect width="235" height="150" rx="18" fill="#fff"/>
+      <circle cx="36" cy="34" r="20" fill="#7c3aed"/><text x="36" y="42" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">3</text>
+      <text x="24" y="86" fill="#111827" font-size="21" font-weight="700">Open the app</text>
+      <text x="24" y="117" fill="#475569" font-size="15">Visit localhost:3000</text><text x="24" y="138" fill="#475569" font-size="15">and use the local sign-in.</text>
+    </g>
+    <path d="M887 165h35" stroke="#a78bfa" stroke-width="5"/><path d="m914 154 12 11-12 11" fill="none" stroke="#a78bfa" stroke-width="5"/>
+    <g transform="translate(935 90)">
+      <rect width="215" height="150" rx="18" fill="#fff"/>
+      <circle cx="36" cy="34" r="20" fill="#7c3aed"/><text x="36" y="42" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">4</text>
+      <text x="24" y="86" fill="#111827" font-size="21" font-weight="700">Run ./stop.sh</text>
+      <text x="24" y="117" fill="#475569" font-size="15">Stop safely; keep your</text><text x="24" y="138" fill="#475569" font-size="15">local database and data.</text>
+    </g>
+  </g>
+</svg>
