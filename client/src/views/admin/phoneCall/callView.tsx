@@ -16,7 +16,7 @@ import Spinner from "components/spinner/Spinner";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { getApi } from "services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const CallView = (props) => {
   const { onClose, isOpen, info, action, access } = props;

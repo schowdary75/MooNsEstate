@@ -25,7 +25,7 @@ import {
 import CountUpComponent from "components/countUpComponent/countUpComponent";
 import Pagination from "components/pagination/Pagination";
 import { MdOutlineMessage } from "react-icons/md";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import AddPhoneCall from "../../phoneCall/components/AddPhoneCall";
 import { AddIcon } from "@chakra-ui/icons";
 import DataNotFound from "components/notFoundData";

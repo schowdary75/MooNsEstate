@@ -22,7 +22,7 @@ import {
 } from "@chakra-ui/icons";
 import React from "react";
 import moment from "moment";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { BiLink } from "react-icons/bi";
 import { useEffect, useRef } from "react";
 import { useState } from "react";

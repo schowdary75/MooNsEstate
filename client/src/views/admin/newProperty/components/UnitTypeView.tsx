@@ -16,7 +16,7 @@ import {
 import { useState, useEffect } from "react";
 import { IoLogoUsd } from "react-icons/io";
 import { postApi } from "services/api";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 const UnitTypeView = (props) => {
   const { onClose, isOpen, data, unitTypeList, setAction } = props;

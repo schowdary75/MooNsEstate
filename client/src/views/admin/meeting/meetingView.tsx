@@ -16,10 +16,10 @@ import Spinner from "components/spinner/Spinner";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { BiLink } from "react-icons/bi";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { getApi } from "services/api";
 // import DeleteTask from './components/deleteTask'
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { HasAccess } from "../../../redux/accessUtils";
 
 const MeetingView = (props) => {

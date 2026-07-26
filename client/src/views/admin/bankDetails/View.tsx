@@ -30,7 +30,7 @@ import { HSeparator } from "components/separator/Separator";
 import Spinner from "components/spinner/Spinner";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
 import { getApi, putApi } from "services/api";
 import { HasAccess } from "../../../redux/accessUtils";

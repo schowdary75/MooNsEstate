@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes } from "react-router"
 import { AppShell, NotFoundPage } from "./AppShell"
 import { AuthProvider, ProtectedRoute, useAuth } from "./auth"
 import { DashboardPage } from "./DashboardPage"

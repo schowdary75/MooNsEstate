@@ -51,7 +51,7 @@ import { IoIosArrowBack } from "react-icons/io";
 import { MdMoveDown, MdMoveUp } from "react-icons/md";
 import { TbStatusChange } from "react-icons/tb";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { MdBlock } from "react-icons/md";
 import { deleteApi, getApi, postApi, postApiBlob } from "services/api";
 import CustomView from "utils/customView";

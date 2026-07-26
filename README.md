@@ -5,7 +5,7 @@
 
   [![CI](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml/badge.svg)](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml)
   [![MIT License](https://img.shields.io/badge/license-MIT-7c3aed.svg)](LICENSE)
-  [![Node 22](https://img.shields.io/badge/node-22-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
+  [![Node 22.22+](https://img.shields.io/badge/node-22.22%2B-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
   [![Private repository](https://img.shields.io/badge/repository-private-111827?logo=github)](SECURITY.md)
   [![Star](https://img.shields.io/badge/%E2%AD%90-star_this_repo-f5b301)](https://github.com/schowdary75/MooNsEstate)
   [![Fork](https://img.shields.io/badge/%F0%9F%8D%B4-fork_to_contribute-2563eb)](https://github.com/schowdary75/MooNsEstate/fork)
@@ -28,7 +28,7 @@
 You only need:
 
 1. [Git](https://git-scm.com/downloads)
-2. [Node.js 22 LTS](https://nodejs.org/)
+2. [Node.js 22.22 or newer](https://nodejs.org/) (below Node 23)
 3. [Docker Desktop](https://www.docker.com/products/docker-desktop/) running
 4. Bash: Terminal on macOS/Linux, WSL, or **Git Bash** on Windows
 

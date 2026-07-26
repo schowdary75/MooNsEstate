@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useFormik } from "formik";
 import { motion, AnimatePresence } from "framer-motion";
 import DefaultAuth from "layouts/auth/Default";

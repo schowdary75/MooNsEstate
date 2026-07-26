@@ -36,7 +36,7 @@ import ContactModel from "./ContactModel";
 import LeadModel from "components/commonTableModel/LeadModel";
 import MultiPropertyModel from "components/commonTableModel/MultiPropertyModel";
 import * as yup from "yup";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 const EmailModel = (props) => {
   const { onClose, isOpen, fetchData } = props;

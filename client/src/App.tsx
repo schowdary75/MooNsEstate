@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router";
 import AuthLayout from "./layouts/auth";
 import AdminLayout from "layouts/admin";
 import UserLayout from "layouts/user";

@@ -91,7 +91,7 @@
 // import moment from 'moment'
 // import { HSeparator } from "components/separator/Separator";
 // import { putApi } from 'services/api';
-// import { useParams } from 'react-router-dom';
+// import { useParams } from 'react-router';
 // import { useFormik } from 'formik';
 // import * as yup from 'yup'
 // import { generateValidationSchema } from 'utils';
@@ -265,7 +265,7 @@ import Card from "components/card/Card";
 import moment from "moment";
 import { HSeparator } from "components/separator/Separator";
 import { putApi } from "services/api";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { useFormik } from "formik";
 import * as yup from "yup";
 import { generateValidationSchema } from "utils";

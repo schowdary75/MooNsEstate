@@ -14,7 +14,7 @@ import { HasAccess } from "../../../redux/accessUtils";
 import CommonCheckTable from "../../../components/reactTable/checktable";
 import { SearchIcon } from "@chakra-ui/icons";
 import { CiMenuKebab } from "react-icons/ci";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import MeetingAdvanceSearch from "./components/MeetingAdvanceSearch";
 import AddMeeting from "./components/Addmeeting";
 import CommonDeleteModel from "components/commonDeleteModel";

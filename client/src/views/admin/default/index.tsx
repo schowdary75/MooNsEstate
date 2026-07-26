@@ -22,7 +22,7 @@ import { HSeparator } from "components/separator/Separator";
 import { useEffect, useState } from "react";
 import { LuBuilding2 } from "react-icons/lu";
 import { MdAddTask, MdContacts, MdLeaderboard } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { getApi } from "services/api";
 import ReportChart from "../reports/components/reportChart";
 import Chart from "components/charts/LineChart.js";

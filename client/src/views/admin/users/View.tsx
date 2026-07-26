@@ -23,7 +23,7 @@ import { HSeparator } from "components/separator/Separator";
 import Spinner from "components/spinner/Spinner";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { getApi } from "services/api";
 import Add from "./Add";
 import Edit from "./Edit";

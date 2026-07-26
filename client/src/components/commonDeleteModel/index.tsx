@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import Spinner from "components/spinner/Spinner";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 const CommonDeleteModel = (props) => {
   const { isOpen, onClose, type, handleDeleteData, ids, selectedValues } =

@@ -26,7 +26,7 @@ import EditField from "./editfield";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { BiGridVertical } from "react-icons/bi";
 import AddEditHeading from "./addEditHeading";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { IoIosArrowBack } from "react-icons/io";
 import Spinner from "components/spinner/Spinner";
 import CommonDeleteModel from "components/commonDeleteModel";

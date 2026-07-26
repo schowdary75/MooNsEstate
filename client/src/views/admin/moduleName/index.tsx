@@ -15,7 +15,7 @@ import React, { useEffect, useState } from "react";
 import { getApi } from "services/api";
 import Edit from "./Edit";
 import View from "./view";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import Add from "./add";
 import { IoIosArrowBack } from "react-icons/io";
 import DataNotFound from "components/notFoundData";

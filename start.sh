@@ -25,8 +25,8 @@ need curl "curl is required. Install it or use Git Bash, which includes curl."
 need docker "Docker Desktop (or Docker Engine with Compose) is required."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose is not available. Start or update Docker Desktop."
 
-NODE_MAJOR="$(node -p "process.versions.node.split('.')[0]")"
-[[ "$NODE_MAJOR" == "22" ]] || fail "Node.js 22 is required; found $(node --version)."
+NODE_SUPPORTED="$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); major === 22 && minor >= 22")"
+[[ "$NODE_SUPPORTED" == "true" ]] || fail "Node.js 22.22 or newer (but below 23) is required; found $(node --version)."
 docker info >/dev/null 2>&1 || fail "Docker is installed but not running. Start Docker Desktop and try again."
 
 mkdir -p "$RUNTIME_DIR"

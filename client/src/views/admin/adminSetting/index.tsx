@@ -4,7 +4,7 @@ import IconBox from "components/icons/IconBox";
 import { FaCreativeCommonsBy, FaWpforms } from "react-icons/fa";
 import { HiUsers } from "react-icons/hi";
 import { TbExchange } from "react-icons/tb";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { GrValidate } from "react-icons/gr";
 import { TbTableColumn } from "react-icons/tb";
 import { VscFileSubmodule } from "react-icons/vsc";

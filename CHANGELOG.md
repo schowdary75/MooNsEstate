@@ -12,3 +12,7 @@ versioning when releases are published.
 - Community, contribution, support, and security documentation.
 - Continuous integration, dependency updates, and secret scanning.
 - MIT license.
+
+### Security
+
+- Upgraded React Router to 8.3.0 to resolve GHSA-qwww-vcr4-c8h2.

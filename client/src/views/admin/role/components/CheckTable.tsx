@@ -27,7 +27,7 @@ import { AddIcon } from "@chakra-ui/icons";
 import Card from "components/card/Card";
 import CountUpComponent from "components/countUpComponent/countUpComponent";
 import Spinner from "components/spinner/Spinner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import RoleModal from "./roleModal";
 import AddRole from "../Add";
 import { IoIosArrowBack } from "react-icons/io";

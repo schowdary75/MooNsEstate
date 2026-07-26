@@ -8,7 +8,7 @@ import Spinner from "components/spinner/Spinner";
 import { SidebarContext } from "contexts/SidebarContext";
 import React, { Suspense, useEffect } from "react";
 import { useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router";
 import { ROLE_PATH } from "../../roles";
 import newRoutes from "routes.js";
 import { useDispatch, useSelector } from "react-redux";

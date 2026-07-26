@@ -18,7 +18,7 @@ import { FcOpenedFolder } from "react-icons/fc";
 import { FiChevronDown, FiChevronRight, FiFile } from "react-icons/fi";
 import { IoIosContact } from "react-icons/io";
 import { MdLeaderboard } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import Delete from "views/admin/document/component/Delete";
 import LinkModel from "views/admin/document/component/LinkModel";
 import { CiMenuKebab } from "react-icons/ci";

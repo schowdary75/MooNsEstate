@@ -13,7 +13,7 @@ import CommonDeleteModel from "components/commonDeleteModel";
 import { useEffect, useState } from "react";
 import { CiMenuKebab } from "react-icons/ci";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { deleteManyApi } from "services/api";
 import CommonCheckTable from "../../../components/reactTable/checktable";
 import { HasAccess } from "../../../redux/accessUtils";

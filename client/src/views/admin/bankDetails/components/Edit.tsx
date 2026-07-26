@@ -17,7 +17,7 @@ import {
 import Spinner from "components/spinner/Spinner";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { getApi, putApi } from "services/api";
 import * as yup from "yup";
 

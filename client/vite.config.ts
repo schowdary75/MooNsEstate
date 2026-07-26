@@ -49,7 +49,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ["react", "react-dom", "react-router-dom"],
+          react: ["react", "react-dom", "react-router"],
           data: ["@tanstack/react-query", "axios", "zod", "react-hook-form", "@hookform/resolvers"],
           interface: [
             "@radix-ui/react-alert-dialog",

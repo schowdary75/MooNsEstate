@@ -38,7 +38,7 @@ import { BsTwitter } from "react-icons/bs";
 import { FaFacebook } from "react-icons/fa";
 import { IoIosArrowBack } from "react-icons/io";
 import { LuBuilding2 } from "react-icons/lu";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
 import { getApi } from "services/api";
 import AddEmailHistory from "../emailHistory/components/AddEmail";

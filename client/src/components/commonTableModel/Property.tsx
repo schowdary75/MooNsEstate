@@ -22,7 +22,7 @@ import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 
 // Custom components
 import Card from "components/card/Card";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import CountUpComponent from "components/countUpComponent/countUpComponent";
 import Pagination from "components/pagination/Pagination";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa";

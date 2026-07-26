@@ -23,7 +23,7 @@ import {
 import Card from "components/card/Card";
 import CountUpComponent from "components/countUpComponent/countUpComponent";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import Pagination from "components/pagination/Pagination";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa";
 

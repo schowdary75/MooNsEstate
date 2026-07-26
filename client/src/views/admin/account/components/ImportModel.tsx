@@ -14,7 +14,7 @@ import {
 import Spinner from "components/spinner/Spinner";
 import { useFormik } from "formik";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import CommonFileUpload from "components/commonFileUpload";
 
 const ImportModal = (props) => {

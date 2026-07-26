@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { CheckCircle2, CircleAlert } from "lucide-react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { api, errorMessage } from "./api"

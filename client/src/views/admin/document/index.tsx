@@ -19,7 +19,7 @@ import Spinner from "components/spinner/Spinner";
 import { constant } from "constant";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { documentSchema } from "schema";
 import { deleteApi, getApi } from "services/api";

@@ -14,7 +14,7 @@ import { getApi, putApi } from "services/api";
 import Spinner from "components/spinner/Spinner";
 import { useFormik } from "formik";
 import { HSeparator } from "components/separator/Separator";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { IoIosArrowBack } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchModules } from "../../../redux/slices/moduleSlice";

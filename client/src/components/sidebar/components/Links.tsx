@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router";
 // chakra imports
 import {
   AbsoluteCenter,

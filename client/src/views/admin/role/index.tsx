@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getApi } from "services/api";
 import CommonCheckTable from "components/reactTable/checktable";
 import { IoIosArrowBack } from "react-icons/io";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import RoleModal from "./components/roleModal";
 import AddRole from "./Add";
 

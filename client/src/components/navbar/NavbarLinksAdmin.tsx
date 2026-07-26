@@ -21,7 +21,7 @@ import { useEffect, useState } from "react";
 // Assets
 import { MdInfoOutline, MdNotificationsNone } from "react-icons/md";
 import { FaEthereum } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { getApi } from "services/api";
 import { toast } from "react-toastify";
 import jwtDecode from "jwt-decode";

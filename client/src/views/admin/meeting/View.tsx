@@ -13,7 +13,7 @@ import Spinner from "components/spinner/Spinner";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { HasAccess } from "../../../redux/accessUtils";
 import { getApi } from "services/api";
 import { DeleteIcon } from "@chakra-ui/icons";

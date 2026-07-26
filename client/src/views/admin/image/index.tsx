@@ -22,7 +22,7 @@ import ImageView from "./imageView";
 import AddImage from "./addImage";
 import { getApi } from "services/api";
 import { IoIosArrowBack } from "react-icons/io";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { putApi } from "services/api";
 import { AddIcon } from "@chakra-ui/icons";
 import DataNotFound from "components/notFoundData";

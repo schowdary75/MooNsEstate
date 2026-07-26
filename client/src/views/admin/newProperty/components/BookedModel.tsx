@@ -12,7 +12,7 @@ import {
 import { saveAs } from "file-saver";
 import { useFormik } from "formik";
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { toast } from "react-toastify";
 import { postApiBlob } from "services/api";
 import * as yup from "yup";

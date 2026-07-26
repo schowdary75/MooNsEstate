@@ -23,7 +23,7 @@ import {
 import Card from "components/card/Card";
 import Pagination from "components/pagination/Pagination";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import DataNotFound from "components/notFoundData";
 
 export default function PropertyTable(props) {

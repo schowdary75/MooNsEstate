@@ -17,7 +17,7 @@ import { fetchBankData } from "../../../redux/slices/bankDetailsSlice";
 import Add from "./components/Add";
 import Edit from "./components/Edit";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const BankDetails = () => {
   const dispatch = useDispatch();

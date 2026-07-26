@@ -33,7 +33,7 @@ import { phoneCallSchema } from "schema";
 import { getApi, postApi } from "services/api";
 import MultiPropertyModel from "components/commonTableModel/MultiPropertyModel";
 import { CUIAutoComplete } from "chakra-ui-autocomplete";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import * as yup from "yup";
 
 const PhoneModel = (props) => {

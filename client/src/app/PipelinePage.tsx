@@ -6,7 +6,7 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
 import { ArrowUpRight, CalendarDays, GripVertical, Search, Target } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link } from "react-router"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

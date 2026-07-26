@@ -14,7 +14,7 @@ import Spinner from "components/spinner/Spinner";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router";
 import { HasAccess } from "../../../redux/accessUtils";
 import { getApi } from "services/api";
 import { FaFilePdf } from "react-icons/fa";

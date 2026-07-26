@@ -13,7 +13,7 @@ import moment from "moment";
 import { useEffect, useState } from "react";
 import { CiMenuKebab } from "react-icons/ci";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { deleteManyApi } from "services/api";
 import CommonDeleteModel from "../../../components/commonDeleteModel";

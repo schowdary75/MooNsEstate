@@ -32,7 +32,7 @@ import Spinner from "components/spinner/Spinner";
 import { constant } from "constant";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
-import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router";
 import { toast } from "react-toastify";
 import { getApi } from "services/api";
 import PhoneCall from "../contact/components/phonCall";

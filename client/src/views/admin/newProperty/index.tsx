@@ -26,7 +26,7 @@ import { useEffect, useState } from "react";
 import { CiMenuKebab } from "react-icons/ci";
 import { FaHome } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { deleteManyApi } from "services/api";
 import Spinner from "../../../components/spinner/Spinner";

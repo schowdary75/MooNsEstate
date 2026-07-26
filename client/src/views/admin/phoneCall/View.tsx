@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { FaFilePdf } from "react-icons/fa";
 import { IoIosArrowBack } from "react-icons/io";
 import { useDispatch } from "react-redux";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { getApi } from "services/api";
 import CommonCheckTable from "../../../components/reactTable/checktable";
 import { HasAccess } from "../../../redux/accessUtils";

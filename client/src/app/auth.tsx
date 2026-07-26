@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { Navigate, useLocation } from "react-router-dom"
+import { Navigate, useLocation } from "react-router"
 import { api, errorMessage } from "./api"
 import { t } from "./i18n"
 import type { SessionUser } from "./types"
