@@ -1,6 +1,8 @@
 import prisma from "../db/prisma.js"
 
 const DEFAULT_ORGANIZATION_SLUG = "moon-estates"
+const catalogReady = new Set<string>()
+const catalogTasks = new Map<string, Promise<void>>()
 const roleCatalog = [
   ["platform_owner", "Platform Owner"],
   ["organization_owner", "Organization Owner"],
@@ -19,6 +21,13 @@ const permissionCatalog = [
   "leads.write",
   "properties.read",
   "properties.write",
+  "inventory.manage",
+  "deals.read",
+  "deals.write",
+  "deals.execute",
+  "collections.manage",
+  "financials.read",
+  "reports.sales",
   "communications.read",
   "communications.send",
   "meta.read",
@@ -31,10 +40,10 @@ const permissionsByRole: Record<string, readonly string[]> = {
   platform_owner: permissionCatalog,
   organization_owner: permissionCatalog,
   organization_admin: permissionCatalog.filter((key) => key !== "billing.manage"),
-  sales_manager: ["leads.read", "leads.write", "properties.read", "communications.read", "communications.send", "meta.read", "reports.export"],
-  marketing_manager: ["leads.read", "leads.write", "properties.read", "communications.read", "communications.send", "meta.read", "meta.sync", "reports.export"],
-  agent: ["leads.read", "leads.write", "properties.read", "communications.read", "communications.send", "meta.read"],
-  finance: ["leads.read", "properties.read", "billing.manage", "reports.export"],
+  sales_manager: ["leads.read", "leads.write", "properties.read", "properties.write", "inventory.manage", "deals.read", "deals.write", "deals.execute", "collections.manage", "financials.read", "reports.sales", "communications.read", "communications.send", "meta.read", "reports.export"],
+  marketing_manager: ["leads.read", "leads.write", "properties.read", "deals.read", "reports.sales", "communications.read", "communications.send", "meta.read", "meta.sync", "reports.export"],
+  agent: ["leads.read", "leads.write", "properties.read", "deals.read", "deals.write", "reports.sales", "communications.read", "communications.send", "meta.read"],
+  finance: ["leads.read", "properties.read", "deals.read", "collections.manage", "financials.read", "reports.sales", "billing.manage", "reports.export"],
   read_only: ["leads.read", "properties.read", "communications.read", "meta.read"],
 }
 
@@ -71,6 +80,16 @@ export async function ensureRoleCatalog(organizationId: string) {
       data: { roleId: role.id },
     })
   }
+  catalogReady.add(organizationId)
+}
+
+async function ensureRoleCatalogOnce(organizationId: string) {
+  if (catalogReady.has(organizationId)) return
+  const running = catalogTasks.get(organizationId)
+  if (running) return running
+  const task = ensureRoleCatalog(organizationId).finally(() => catalogTasks.delete(organizationId))
+  catalogTasks.set(organizationId, task)
+  return task
 }
 
 export async function ensureDefaultWorkspace(userId: string, legacyRole?: string | null) {
@@ -79,7 +98,7 @@ export async function ensureDefaultWorkspace(userId: string, legacyRole?: string
     orderBy: { createdDate: "asc" },
   })
   if (existing) {
-    await ensureRoleCatalog(existing.organizationId)
+    await ensureRoleCatalogOnce(existing.organizationId)
     return prisma.membership.findUniqueOrThrow({ where: { id: existing.id } })
   }
 

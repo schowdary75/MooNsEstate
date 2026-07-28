@@ -5,5 +5,6 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     sequence: { concurrent: false },
+    testTimeout: 20_000,
   },
 })

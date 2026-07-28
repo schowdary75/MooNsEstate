@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "2.0.1",
+    "@chakra-ui/react": "^3.36.1",
     "@hookform/resolvers": "5.2.2",
     "@radix-ui/react-alert-dialog": "1.1.23",
     "@radix-ui/react-avatar": "1.2.6",
@@ -40,6 +41,7 @@
     "react-day-picker": "10.0.1",
     "react-dom": "19.2.8",
     "react-hook-form": "7.83.0",
+    "react-icons": "^5.7.0",
     "react-router": "8.3.0",
     "recharts": "3.10.0",
     "socket.io-client": "4.8.1",

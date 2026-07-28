@@ -1161,6 +1161,7 @@ model RealEstateProject {
   organizationId String
   name           String
   slug           String
+  developerId    String?
   builder        String?
   location       String?
   address        String?  @db.Text
@@ -1168,12 +1169,192 @@ model RealEstateProject {
   latitude       Float?
   longitude      Float?
   possessionDate DateTime?
+  description    String?  @db.Text
+  amenities      Json?
+  media          Json?
+  documents      Json?
   published      Boolean  @default(false)
   createdDate    DateTime @default(now())
   updatedDate    DateTime @updatedAt
 
   @@unique([organizationId, slug])
+  @@index([organizationId, published])
+  @@index([developerId])
   @@map("real_estate_project_records")
+}
+
+model DeveloperProfile {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  name                  String
+  legalName             String?
+  profileType           String   @default("Developer")
+  reraRegistration      String?
+  gstin                 String?
+  website               String?
+  email                 String?
+  phone                 String?
+  contactPerson         String?
+  address               String?  @db.Text
+  status                String   @default("Active")
+  notes                 String?  @db.Text
+  createdBy             String?
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@map("developer_profile_records")
+}
+
+model InventoryStructure {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  projectId             String
+  name                  String
+  kind                  String   @default("Tower")
+  totalLevels           Int?
+  unitNumberPattern     String?  @default("{floor}{sequence:02}")
+  active                Boolean  @default(true)
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([organizationId, kind])
+  @@map("inventory_structure_records")
+}
+
+model InventoryLevel {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  structureId           String
+  levelNumber           Int
+  label                 String?
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@unique([structureId, levelNumber])
+  @@index([organizationId])
+  @@map("inventory_level_records")
+}
+
+model InventoryUnit {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  structureId           String
+  levelId               String?
+  legacyPropertyId      String?
+  unitNumber            String
+  unitType              String?
+  bedrooms              Int?
+  bathrooms             Int?
+  carpetArea            Int?
+  saleableArea          Int?
+  facing                String?
+  listingPrice          Decimal? @db.Decimal(18, 2)
+  baseCost              Decimal? @db.Decimal(18, 2)
+  status                String   @default("Available")
+  statusChangedAt       DateTime @default(now())
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@unique([structureId, unitNumber])
+  @@index([organizationId, status])
+  @@index([levelId])
+  @@index([legacyPropertyId])
+  @@map("inventory_unit_records")
+}
+
+model InventoryGenerationBatch {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  projectId             String
+  structureId           String
+  idempotencyKey        String
+  request               Json
+  createdUnitCount      Int
+  createdBy             String?
+  createdDate           DateTime @default(now())
+
+  @@unique([organizationId, idempotencyKey], map: "inventory_batch_org_idempotency_key")
+  @@index([structureId, createdDate], map: "inventory_batch_structure_created_idx")
+  @@map("inventory_generation_batch_records")
+}
+
+model SalesDeal {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  projectId             String
+  structureId           String
+  unitId                String
+  leadId                String?
+  contactId             String?
+  buyerProfileId        String?
+  opportunityId         String?
+  assignedAgentId       String?
+  dealNumber            String
+  agreementNumber       String?
+  status                String   @default("Draft")
+  currency              String   @default("INR")
+  grossPrice            Decimal  @db.Decimal(18, 2)
+  discount              Decimal  @default(0) @db.Decimal(18, 2)
+  netSaleValue          Decimal  @db.Decimal(18, 2)
+  taxes                 Decimal  @default(0) @db.Decimal(18, 2)
+  baseCost              Decimal  @default(0) @db.Decimal(18, 2)
+  brokerage             Decimal  @default(0) @db.Decimal(18, 2)
+  directExpenses        Decimal  @default(0) @db.Decimal(18, 2)
+  agencyCommission      Decimal  @default(0) @db.Decimal(18, 2)
+  paymentSchedule       Json?
+  documents             Json?
+  reservedAt            DateTime?
+  agreementExecutedAt   DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?  @db.Text
+  createdBy             String?
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@unique([organizationId, dealNumber])
+  @@index([organizationId, status, agreementExecutedAt], map: "sales_deal_org_status_executed_idx")
+  @@index([unitId, status], map: "sales_deal_unit_status_idx")
+  @@index([assignedAgentId, agreementExecutedAt], map: "sales_deal_agent_executed_idx")
+  @@map("sales_deal_records")
+}
+
+model DealPayment {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  dealId                String
+  reference             String?
+  amount                Decimal  @db.Decimal(18, 2)
+  currency              String   @default("INR")
+  status                String   @default("Confirmed")
+  paymentMethod         String?
+  paidAt                DateTime
+  notes                 String?  @db.Text
+  recordedBy            String?
+  createdDate           DateTime @default(now())
+  updatedDate           DateTime @updatedAt
+
+  @@index([organizationId, status, paidAt])
+  @@index([dealId, paidAt])
+  @@map("deal_payment_records")
+}
+
+model DealExpense {
+  id                    String   @id @default(uuid()) @map("_id")
+  organizationId        String
+  dealId                String
+  category              String
+  description           String?
+  amount                Decimal  @db.Decimal(18, 2)
+  incurredAt            DateTime
+  recordedBy            String?
+  createdDate           DateTime @default(now())
+
+  @@index([organizationId, incurredAt])
+  @@index([dealId])
+  @@map("deal_expense_records")
 }
 
 model PropertyTower {

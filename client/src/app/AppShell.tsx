@@ -5,14 +5,17 @@ import {
   Bell,
   Building2,
   Check,
+  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
   Columns3,
   Command as CommandIcon,
+  CircleDollarSign,
   LayoutDashboard,
   LogOut,
   Menu,
   Search,
+  type LucideIcon,
   UserRound,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -42,7 +45,60 @@ import { api, errorMessage } from "./api"
 import { t } from "./i18n"
 import { modules } from "./modules"
 
-const groups = ["Workspace", "Activity", "Operations", "Administration"] as const
+type NavigationSection = {
+  label: string
+  keys: readonly string[]
+  links?: readonly {
+    path: string
+    label: string
+    icon: LucideIcon
+    end?: boolean
+  }[]
+}
+
+const navigationSections: readonly NavigationSection[] = [
+  {
+    label: "Overview",
+    keys: ["reports"],
+    links: [
+      { path: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+      { path: "/management", label: "Management intelligence", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Sales",
+    keys: ["opportunities", "meta-acquisition"],
+    links: [
+      { path: "/sales", label: "Sales desk", icon: CircleDollarSign },
+      { path: "/pipeline", label: "Deal pipeline", icon: Columns3 },
+    ],
+  },
+  {
+    label: "Inventory",
+    keys: [],
+    links: [
+      { path: "/inventory", label: "Project cockpit", icon: Building2 },
+      { path: "/properties", label: "Properties", icon: Building2 },
+      { path: "/developers", label: "Builders & developers", icon: Building2 },
+    ],
+  },
+  { label: "Customers", keys: ["leads", "contacts", "accounts"], links: [] },
+  { label: "Activities", keys: ["followups", "tasks", "meetings", "calls", "calendar"] },
+  { label: "Communications", keys: ["conversations", "emails", "email-templates"] },
+  { label: "Finance", keys: ["invoices", "payments", "documents", "billing"] },
+] as const
+
+const administrationModuleKeys = [
+  "users",
+  "roles",
+  "custom-fields",
+  "validation",
+  "table-fields",
+  "modules",
+  "images",
+  "integrations",
+  "settings",
+] as const
 
 type Workspace = {
   id: string
@@ -76,8 +132,31 @@ function Brand({ collapsed = false }: { collapsed?: boolean }) {
 
 function NavContent({ collapsed = false, close }: { collapsed?: boolean; close?: () => void }) {
   const { user } = useAuth()
+  const location = useLocation()
   const isAdmin = ["platform_owner", "organization_owner", "organization_admin"].includes(user?.role || "")
   const visibleModules = modules.filter((item) => !item.adminOnly || isAdmin)
+  const activeSection = navigationSections.find((section) =>
+    (section.links?.some((item) =>
+      item.end ? location.pathname === item.path : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`),
+    ) || false) ||
+    visibleModules.some((item) =>
+      (section.keys as readonly string[]).includes(item.key) &&
+      (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
+    ),
+  )?.label
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set(["Overview", activeSection].filter(Boolean) as string[]),
+  )
+
+  useEffect(() => {
+    if (!activeSection) return
+    setOpenSections((current) => {
+      if (current.has(activeSection)) return current
+      const next = new Set(current)
+      next.add(activeSection)
+      return next
+    })
+  }, [activeSection])
 
   const navItem = (to: string, label: string, icon: ReactNode, end = false) => (
     <NavLink
@@ -103,17 +182,60 @@ function NavContent({ collapsed = false, close }: { collapsed?: boolean; close?:
   )
 
   return (
-    <nav className="space-y-5">
-      <div>{navItem("/", t("nav.dashboard"), <LayoutDashboard className="size-4 shrink-0" />, true)}</div>
-      <div>{navItem("/pipeline", t("nav.pipeline"), <Columns3 className="size-4 shrink-0" />)}</div>
-      {groups.map((group) => {
-        const items = visibleModules.filter((item) => item.group === group)
+    <nav aria-label="Primary navigation" className="space-y-2">
+      {navigationSections.map((section) => {
+        const configuredLinks = section.links || []
+        const moduleItems = visibleModules
+          .filter((item) => (section.keys as readonly string[]).includes(item.key))
+          .sort((left, right) =>
+            (section.keys as readonly string[]).indexOf(left.key) -
+            (section.keys as readonly string[]).indexOf(right.key),
+          )
+        const items = [
+          ...configuredLinks.map((item) => ({
+            path: item.path,
+            label: item.label,
+            icon: item.icon,
+            end: "end" in item ? item.end : false,
+          })),
+          ...moduleItems.map((item) => ({
+            path: item.path,
+            label: item.label,
+            icon: item.icon,
+            end: false,
+          })),
+        ]
         if (!items.length) return null
+        const isOpen = collapsed || openSections.has(section.label)
+        const isActive = activeSection === section.label
         return (
-          <div key={group}>
-            {!collapsed && <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{group}</p>}
-            <div className="space-y-1">
-              {items.map((item) => navItem(item.path, item.label, <item.icon className="size-4 shrink-0" />))}
+          <div key={section.label} className={cn("rounded-xl", isActive && !collapsed && "bg-black/[0.025]")}>
+            {!collapsed && (
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                onClick={() => setOpenSections((current) => {
+                  const next = new Set(current)
+                  if (next.has(section.label)) next.delete(section.label)
+                  else next.add(section.label)
+                  return next
+                })}
+                className={cn(
+                  "flex h-9 w-full items-center justify-between rounded-lg px-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] transition-colors",
+                  isActive ? "text-black" : "text-muted-foreground hover:bg-black/5 hover:text-black",
+                )}
+              >
+                <span>{section.label}</span>
+                <ChevronDown className={cn("size-3.5 transition-transform", !isOpen && "-rotate-90")} />
+              </button>
+            )}
+            <div className={cn("space-y-1", !collapsed && "px-1 pb-1", !isOpen && "hidden")}>
+              {items.map((item) => navItem(
+                item.path,
+                item.label,
+                <item.icon className="size-4 shrink-0" />,
+                item.end,
+              ))}
             </div>
           </div>
         )
@@ -172,7 +294,17 @@ export function AppShell() {
     () => modules.find((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
     [location.pathname],
   )
-  const currentLabel = location.pathname === "/pipeline" ? "Deal pipeline" : current?.label || "Dashboard"
+  const currentLabel = location.pathname === "/pipeline"
+    ? "Deal pipeline"
+    : location.pathname === "/management"
+      ? "Management intelligence"
+      : location.pathname === "/developers"
+        ? "Builders & developers"
+      : location.pathname === "/inventory"
+        ? "Project cockpit"
+    : location.pathname === "/sales"
+      ? "Sales desk"
+      : current?.label || "Dashboard"
   const activeWorkspace = workspaces.data?.find((workspace) => workspace.active)
   const unreadCount = unreadConversations.data?.reduce(
     (sum, conversation) => sum + conversation.unreadCount,
@@ -180,6 +312,10 @@ export function AppShell() {
   ) || 0
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "MooN user"
   const initials = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()
+  const isAdmin = ["platform_owner", "organization_owner", "organization_admin"].includes(user?.role || "")
+  const administrationModules = isAdmin
+    ? modules.filter((item) => (administrationModuleKeys as readonly string[]).includes(item.key))
+    : []
 
   const runCommand = (path: string) => {
     navigate(path)
@@ -321,7 +457,7 @@ export function AppShell() {
                   <span className="hidden max-w-32 truncate text-sm sm:block">{name}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuLabel>
                   <p className="truncate">{name}</p>
                   <p className="truncate text-xs font-normal text-muted-foreground">{user?.username}</p>
@@ -330,6 +466,27 @@ export function AppShell() {
                 <DropdownMenuItem onSelect={() => navigate("/users")}>
                   <UserRound /> {t("account.profile")}
                 </DropdownMenuItem>
+                {administrationModules.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Administration
+                    </DropdownMenuLabel>
+                    <div className="max-h-[min(52vh,420px)] overflow-y-auto p-1">
+                      {administrationModules.map((item) => (
+                        <DropdownMenuItem
+                          key={item.path}
+                          onSelect={() => navigate(item.path)}
+                          className={cn(location.pathname === item.path && "bg-accent font-semibold")}
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem
                   onSelect={() => {
                     logout()
@@ -343,7 +500,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1680px] p-4 sm:p-6 lg:p-8">
+        <main className="w-full min-w-0 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

@@ -15,17 +15,17 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["src/*"],
-      "*": ["src/*", "../node_modules/*"]
+      "@/*": ["./*"],
+      "*": ["./*", "../node_modules/*"]
     }
   },
   "include": [
-    "src/main.tsx",
-    "src/vite-env.d.ts",
-    "src/app/**/*.ts",
-    "src/app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx",
     "vite.config.ts",
     "playwright.config.ts",
     "e2e/**/*.ts"

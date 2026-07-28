@@ -8,6 +8,7 @@ PID_FILE="$RUNTIME_DIR/dev.pid"
 LOG_FILE="$RUNTIME_DIR/dev.log"
 COMPOSE_ENV="$RUNTIME_DIR/compose.env"
 MANAGED_MARKER="$RUNTIME_DIR/managed-local-environment"
+DEPENDENCY_STATE_FILE="$RUNTIME_DIR/dependencies.state"
 SERVER_ENV="$ROOT_DIR/server/.env"
 
 cd "$ROOT_DIR"
@@ -15,9 +16,20 @@ cd "$ROOT_DIR"
 say() { printf '\n%s\n' "$1"; }
 fail() { printf '\nError: %s\n' "$1" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "$2"; }
+pause_on_failure() {
+  local status=$?
+  if (( status != 0 )) &&
+     [[ -t 0 ]] &&
+     [[ "${MOONESTATES_NO_PAUSE:-0}" != "1" ]]; then
+    printf '\nStartup failed. Press Enter to close this window...' >&2
+    read -r _ || true
+  fi
+}
 random_hex() {
   node -e "process.stdout.write(require('crypto').randomBytes($1).toString('hex'))"
 }
+
+trap pause_on_failure EXIT
 
 need node "Node.js 22 is required. Install it from https://nodejs.org/"
 need npm "npm is required and is normally installed with Node.js."
@@ -97,15 +109,54 @@ else
   say "Using your existing server/.env database configuration."
 fi
 
-say "Installing exact dependencies..."
-npm ci
+DEPENDENCY_STATE="$(
+  node -e "
+    const crypto = require('crypto');
+    const fs = require('fs');
+    const lockHash = crypto
+      .createHash('sha256')
+      .update(fs.readFileSync('package-lock.json'))
+      .digest('hex');
+    process.stdout.write([
+      lockHash,
+      process.versions.modules,
+      process.platform,
+      process.arch
+    ].join(':'));
+  "
+)"
+
+DEPENDENCIES_READY=false
+if [[ -d "$ROOT_DIR/node_modules" &&
+      -f "$ROOT_DIR/node_modules/.bin/concurrently" &&
+      -f "$ROOT_DIR/node_modules/.bin/prisma" &&
+      -f "$ROOT_DIR/node_modules/.bin/vite" &&
+      -f "$DEPENDENCY_STATE_FILE" &&
+      "$(tr -d '[:space:]' < "$DEPENDENCY_STATE_FILE")" == "$DEPENDENCY_STATE" ]]; then
+  DEPENDENCIES_READY=true
+fi
+
+if [[ "$DEPENDENCIES_READY" == "true" ]]; then
+  say "Dependencies are already up to date."
+else
+  say "Installing exact dependencies..."
+  rm -f "$DEPENDENCY_STATE_FILE"
+  npm ci
+  printf '%s\n' "$DEPENDENCY_STATE" > "$DEPENDENCY_STATE_FILE"
+fi
 
 say "Preparing the database..."
 npm run prisma:generate
 if [[ -f "$MANAGED_MARKER" ]]; then
-  npx prisma db push --schema server/prisma/schema.prisma --skip-generate
+  (
+    cd "$ROOT_DIR/server"
+    ../node_modules/.bin/prisma db push --schema prisma/schema.prisma --skip-generate
+  )
 else
-  npx prisma migrate deploy --schema server/prisma/schema.prisma
+  (
+    cd "$ROOT_DIR/server"
+    ../node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma
+  )
 fi
 
 if [[ -f "$MANAGED_MARKER" && ! -f "$RUNTIME_DIR/admin-created" ]]; then
@@ -120,7 +171,7 @@ printf '%s\n' "$APP_PID" > "$PID_FILE"
 
 for _ in $(seq 1 60); do
   if curl -fsS http://127.0.0.1:5001/api/health >/dev/null 2>&1 &&
-     curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
+     curl -fsS http://localhost:3000 >/dev/null 2>&1; then
     say "MooNsEstate is ready."
     printf 'Open: http://localhost:3000\nLogs: %s\nStop: ./stop.sh\n' "$LOG_FILE"
     if [[ -f "$RUNTIME_DIR/admin-credentials.txt" ]]; then

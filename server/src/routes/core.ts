@@ -143,6 +143,24 @@ const propertyUnitInput = z.object({
 
 const propertyUnitPatch = propertyUnitInput.partial()
 
+const propertyUnitGenerationInput = z.object({
+  floorFrom: z.number().int().min(1).max(250).default(1),
+  floorTo: z.number().int().min(1).max(250),
+  unitsPerFloor: z.number().int().min(1).max(50),
+  numberingPattern: z.string().trim().min(1).max(80).default("{floor}{sequence:02}"),
+  conflictPolicy: z.enum(["reject", "skip"]).default("reject"),
+  unitTemplate: propertyUnitInput.omit({ floorNumber: true, unitNumber: true }).default({
+    status: "Available",
+  }),
+})
+
+const generatedUnitNumber = (pattern: string, floor: number, sequence: number) =>
+  pattern
+    .replaceAll("{floor}", String(floor))
+    .replace(/\{floor:(\d+)\}/g, (_match, width) => String(floor).padStart(Number(width), "0"))
+    .replaceAll("{sequence}", String(sequence))
+    .replace(/\{sequence:(\d+)\}/g, (_match, width) => String(sequence).padStart(Number(width), "0"))
+
 const pageInput = (req: AuthRequest) => {
   const page = Math.max(1, Number(req.query.page) || 1)
   const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 25))
@@ -1096,6 +1114,209 @@ coreRouter.get(
           propertyId: context.property.id,
           tower: context.tower,
           units: await inventoryUnits(context.tower.id, context.property),
+        },
+      })
+    } catch (error) { next(error) }
+  },
+)
+
+coreRouter.post(
+  "/properties/:propertyId/units/generate",
+  requirePermission("properties.write"),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const input = propertyUnitGenerationInput.parse(req.body)
+      const context = await propertyInventoryContext(String(req.params.propertyId), req.auth!.organizationId, true)
+      if (!context) {
+        res.status(404).json({ error: "Property not found" })
+        return
+      }
+      if (!context.tower) {
+        res.status(409).json({ error: "Set the tower and total floors on this property first" })
+        return
+      }
+      if (input.floorFrom > input.floorTo || input.floorTo > context.tower.totalFloors) {
+        res.status(400).json({ error: `Floor range must be within 1 and ${context.tower.totalFloors}` })
+        return
+      }
+
+      const rows = Array.from(
+        { length: input.floorTo - input.floorFrom + 1 },
+        (_, floorIndex) => input.floorFrom + floorIndex,
+      ).flatMap((floorNumber) =>
+        Array.from({ length: input.unitsPerFloor }, (_, unitIndex) => ({
+          floorNumber,
+          unitNumber: generatedUnitNumber(input.numberingPattern, floorNumber, unitIndex + 1),
+        })),
+      )
+      if (rows.some((row) => !row.unitNumber || row.unitNumber.length > 40)) {
+        res.status(400).json({ error: "The numbering pattern generated an invalid unit number" })
+        return
+      }
+      if (new Set(rows.map((row) => `${row.floorNumber}:${row.unitNumber}`)).size !== rows.length) {
+        res.status(400).json({ error: "The numbering pattern generates duplicate unit numbers" })
+        return
+      }
+
+      const existingFloors = await prisma.propertyFloor.findMany({
+        where: {
+          towerId: context.tower.id,
+          floorNumber: { gte: input.floorFrom, lte: input.floorTo },
+        },
+      })
+      const existingUnits = existingFloors.length
+        ? await prisma.propertyUnit.findMany({
+            where: { floorId: { in: existingFloors.map((floor) => floor.id) } },
+            select: { floorId: true, unitNumber: true },
+          })
+        : []
+      const floorNumberById = new Map(existingFloors.map((floor) => [floor.id, floor.floorNumber]))
+      const conflictKeys = new Set(existingUnits.map((unit) =>
+        `${floorNumberById.get(unit.floorId)}:${unit.unitNumber}`,
+      ))
+      const conflicts = rows.filter((row) => conflictKeys.has(`${row.floorNumber}:${row.unitNumber}`))
+      if (conflicts.length && input.conflictPolicy === "reject") {
+        res.status(409).json({
+          error: `${conflicts.length} generated unit${conflicts.length === 1 ? "" : "s"} already exist`,
+          conflicts,
+        })
+        return
+      }
+      const creatableRows = rows.filter((row) => !conflictKeys.has(`${row.floorNumber}:${row.unitNumber}`))
+
+      const created = await prisma.$transaction(async (tx) => {
+        const generated: Array<{ id: string; floorNumber: number; unitNumber: string }> = []
+        const structure = context.project
+          ? await tx.inventoryStructure.upsert({
+              where: {
+                projectId_name: {
+                  projectId: context.project.id,
+                  name: context.tower!.name,
+                },
+              },
+              update: { kind: "Tower", totalLevels: context.tower!.totalFloors },
+              create: {
+                organizationId: req.auth!.organizationId,
+                projectId: context.project.id,
+                name: context.tower!.name,
+                kind: "Tower",
+                totalLevels: context.tower!.totalFloors,
+              },
+            })
+          : null
+        for (const row of creatableRows) {
+          const floor = await tx.propertyFloor.upsert({
+            where: {
+              towerId_floorNumber: {
+                towerId: context.tower!.id,
+                floorNumber: row.floorNumber,
+              },
+            },
+            update: {},
+            create: {
+              organizationId: req.auth!.organizationId,
+              towerId: context.tower!.id,
+              floorNumber: row.floorNumber,
+              label: `Floor ${row.floorNumber}`,
+            },
+          })
+          const unit = await tx.propertyUnit.create({
+            data: {
+              organizationId: req.auth!.organizationId,
+              floorId: floor.id,
+              propertyId: context.property.id,
+              unitNumber: row.unitNumber,
+              bedrooms: input.unitTemplate.bedrooms,
+              bathrooms: input.unitTemplate.bathrooms,
+              carpetArea: input.unitTemplate.carpetArea,
+              facing: input.unitTemplate.facing,
+              listingPrice: input.unitTemplate.listingPrice,
+              status: input.unitTemplate.status,
+            },
+          })
+          await tx.availabilityEvent.create({
+            data: {
+              organizationId: req.auth!.organizationId,
+              propertyUnitId: unit.id,
+              toStatus: unit.status,
+              actorUserId: req.auth!.userId,
+            },
+          })
+          if (structure) {
+            const level = await tx.inventoryLevel.upsert({
+              where: {
+                structureId_levelNumber: {
+                  structureId: structure.id,
+                  levelNumber: row.floorNumber,
+                },
+              },
+              update: { label: `Floor ${row.floorNumber}` },
+              create: {
+                organizationId: req.auth!.organizationId,
+                structureId: structure.id,
+                levelNumber: row.floorNumber,
+                label: `Floor ${row.floorNumber}`,
+              },
+            })
+            await tx.inventoryUnit.upsert({
+              where: {
+                structureId_unitNumber: {
+                  structureId: structure.id,
+                  unitNumber: row.unitNumber,
+                },
+              },
+              update: {
+                levelId: level.id,
+                legacyPropertyId: context.property.id,
+                unitType: input.unitTemplate.bedrooms === null || input.unitTemplate.bedrooms === undefined
+                  ? null
+                  : `${input.unitTemplate.bedrooms} BHK`,
+                bedrooms: input.unitTemplate.bedrooms,
+                bathrooms: input.unitTemplate.bathrooms,
+                carpetArea: input.unitTemplate.carpetArea,
+                facing: input.unitTemplate.facing,
+                listingPrice: input.unitTemplate.listingPrice,
+                status: input.unitTemplate.status === "Under Offer" ? "Hold" : input.unitTemplate.status,
+              },
+              create: {
+                organizationId: req.auth!.organizationId,
+                structureId: structure.id,
+                levelId: level.id,
+                legacyPropertyId: context.property.id,
+                unitNumber: row.unitNumber,
+                unitType: input.unitTemplate.bedrooms === null || input.unitTemplate.bedrooms === undefined
+                  ? null
+                  : `${input.unitTemplate.bedrooms} BHK`,
+                bedrooms: input.unitTemplate.bedrooms,
+                bathrooms: input.unitTemplate.bathrooms,
+                carpetArea: input.unitTemplate.carpetArea,
+                facing: input.unitTemplate.facing,
+                listingPrice: input.unitTemplate.listingPrice,
+                status: input.unitTemplate.status === "Under Offer" ? "Hold" : input.unitTemplate.status,
+              },
+            })
+          }
+          generated.push({ id: unit.id, floorNumber: row.floorNumber, unitNumber: row.unitNumber })
+        }
+        return generated
+      })
+
+      await audit(req, "property_units.bulk_generated", "property", context.property.id, {
+        towerId: context.tower.id,
+        floorFrom: input.floorFrom,
+        floorTo: input.floorTo,
+        unitsPerFloor: input.unitsPerFloor,
+        numberingPattern: input.numberingPattern,
+        generated: created.length,
+        skipped: conflicts.length,
+      })
+      res.status(201).json({
+        data: {
+          generated: created.length,
+          skipped: conflicts.length,
+          requested: rows.length,
+          floors: input.floorTo - input.floorFrom + 1,
+          units: created,
         },
       })
     } catch (error) { next(error) }

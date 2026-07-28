@@ -87,6 +87,14 @@ const DEFAULT_FLOOR_PLANS = [
   "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1200&q=80",
 ]
 
+const PROPERTY_FORM_STEPS = [
+  { title: "Property", short: "Basics" },
+  { title: "Inventory", short: "Tower & units" },
+  { title: "Specifications", short: "Pricing & specs" },
+  { title: "Location", short: "Address & RERA" },
+  { title: "Review", short: "Confirm" },
+] as const
+
 interface AddressSuggestion {
   id: string
   label: string
@@ -104,6 +112,13 @@ const formatINR = (val: number | string | undefined | null) => {
   }
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(num)
 }
+
+const bulkUnitNumber = (pattern: string, floor: number, sequence: number) =>
+  pattern
+    .replaceAll("{floor}", String(floor))
+    .replace(/\{floor:(\d+)\}/g, (_match, width) => String(floor).padStart(Number(width), "0"))
+    .replaceAll("{sequence}", String(sequence))
+    .replace(/\{sequence:(\d+)\}/g, (_match, width) => String(sequence).padStart(Number(width), "0"))
 
 // ─── Skyscraper Configuration (cloned from SkyscraperVisualizerPage) ───
 interface SkyscraperUnit {
@@ -138,6 +153,12 @@ interface PropertyInventoryUnit {
   listingPrice?: number | string | null
   status: SkyscraperUnit["status"]
   isPrimary?: boolean
+}
+
+interface DeveloperOption {
+  id: string
+  name: string
+  status: string
 }
 
 interface UnitEditorValues {
@@ -178,11 +199,13 @@ export function PropertiesPage() {
   const [skyFloor, setSkyFloor] = useState<number>(34)
   const [skyUnit, setSkyUnit] = useState<string>("3405")
   const [skySearch, setSkySearch] = useState<string>("")
+  const [skyInventoryFilter, setSkyInventoryFilter] = useState<"all" | "available" | "sold">("all")
   const [isElevatorMoving, setIsElevatorMoving] = useState<boolean>(false)
   const [currentElevatorFloor, setCurrentElevatorFloor] = useState<number>(1)
 
   // Modals & In-Page Studio State
   const [builderOpen, setBuilderOpen] = useState(false)
+  const [propertyFormStep, setPropertyFormStep] = useState(0)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [activePropertyDetail, setActivePropertyDetail] = useState<CrmRecord | null>(null)
   const [selectedProperty, setSelectedProperty] = useState<CrmRecord | null>(null)
@@ -212,6 +235,9 @@ export function PropertiesPage() {
   const [floorNumber, setFloorNumber] = useState("14")
   const [totalFloors, setTotalFloors] = useState("1")
   const [unitNumber, setUnitNumber] = useState("1402")
+  const [autoGenerateUnits, setAutoGenerateUnits] = useState(true)
+  const [unitsPerFloor, setUnitsPerFloor] = useState("4")
+  const [unitNumberPattern, setUnitNumberPattern] = useState("{floor}{sequence:02}")
   const [facing, setFacing] = useState("East")
   const [status, setStatus] = useState("Available")
   const [published, setPublished] = useState(false)
@@ -285,6 +311,13 @@ export function PropertiesPage() {
     queryKey: ["sky-properties"],
     queryFn: async () => {
       return listRecords("property")
+    },
+  })
+  const { data: onboardedDevelopers = [] } = useQuery({
+    queryKey: ["developers"],
+    queryFn: async () => {
+      const response = await api.get<{ data: DeveloperOption[] }>("/v1/developers")
+      return response.data.data
     },
   })
   const activePropertyId = activePropertyDetail ? recordId(activePropertyDetail) : ""
@@ -392,8 +425,13 @@ export function PropertiesPage() {
   }, [dbProperties, activePropertyDetail, activeTotalFloors, normalizedInventory])
 
   const skyActiveFloorUnits = useMemo(() => {
-    return allUnits.filter((u) => u.floorNum === skyFloor)
-  }, [allUnits, skyFloor])
+    return allUnits.filter((unit) => {
+      if (unit.floorNum !== skyFloor) return false
+      if (skyInventoryFilter === "available") return unit.status === "Available"
+      if (skyInventoryFilter === "sold") return unit.status === "Sold"
+      return true
+    })
+  }, [allUnits, skyFloor, skyInventoryFilter])
 
   const skySelectedUnit = useMemo(() => {
     return skyActiveFloorUnits.find((u) => u.unitNumber === skyUnit) || skyActiveFloorUnits[0]
@@ -538,8 +576,10 @@ export function PropertiesPage() {
 
   // Reset Builder Form
   const handleOpenBuilder = (p?: CrmRecord) => {
+    setPropertyFormStep(0)
     if (p) {
       setEditingId(recordId(p))
+      setAutoGenerateUnits(false)
       setTitle((p.title as string) || (p.propertyAddress as string) || "")
       setBuilder((p.builder as string) || "Oberoi Realty")
       setLocation((p.location as string) || (p.propertyAddress as string) || "Bandra West, Mumbai")
@@ -575,6 +615,9 @@ export function PropertiesPage() {
       setVideoUrl((p.virtualToursOrVideos as string) || "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
     } else {
       setEditingId(null)
+      setAutoGenerateUnits(true)
+      setUnitsPerFloor("4")
+      setUnitNumberPattern("{floor}{sequence:02}")
       setTitle("Palatial 3BHK Penthouse — Sea View Residences")
       setBuilder("Oberoi Realty")
       setLocation("Bandra West, Mumbai")
@@ -602,10 +645,52 @@ export function PropertiesPage() {
     setBuilderOpen(true)
   }
 
+  const goToNextPropertyStep = () => {
+    if (propertyFormStep === 0 && (!title.trim() || !builder.trim() || !location.trim() || !propertyType.trim())) {
+      toast.error("Complete the property name, developer, location, and typology")
+      return
+    }
+    if (propertyFormStep === 1) {
+      const floors = Number(totalFloors)
+      const perFloor = Number(unitsPerFloor)
+      if (!towerName.trim() || !Number.isInteger(floors) || floors < 1 || floors > 250) {
+        toast.error("Enter a tower and a valid total floor count")
+        return
+      }
+      if (!editingId && autoGenerateUnits && (
+        !Number.isInteger(perFloor) || perFloor < 1 || perFloor > 50 || !unitNumberPattern.trim()
+      )) {
+        toast.error("Enter valid units per floor and a numbering pattern")
+        return
+      }
+      if ((!autoGenerateUnits || editingId) && (!floorNumber.trim() || !unitNumber.trim())) {
+        toast.error("Enter the floor and unit number")
+        return
+      }
+    }
+    if (propertyFormStep === 2 && (!price.trim() || Number(price) < 0)) {
+      toast.error("Enter a valid listing price")
+      return
+    }
+    setPropertyFormStep((step) => Math.min(PROPERTY_FORM_STEPS.length - 1, step + 1))
+  }
+
   // Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!title.trim() || !price.trim()) throw new Error("Title and Listing Price are required")
+      const floorCount = Number(totalFloors)
+      const perFloor = Number(unitsPerFloor)
+      if (!Number.isInteger(floorCount) || floorCount < 1 || floorCount > 250) {
+        throw new Error("Total floors must be a whole number between 1 and 250")
+      }
+      if (!editingId && autoGenerateUnits && (!Number.isInteger(perFloor) || perFloor < 1 || perFloor > 50)) {
+        throw new Error("Units per floor must be a whole number between 1 and 50")
+      }
+      const primaryFloor = !editingId && autoGenerateUnits ? 1 : Number(floorNumber)
+      const primaryUnit = !editingId && autoGenerateUnits
+        ? bulkUnitNumber(unitNumberPattern, primaryFloor, 1)
+        : unitNumber
       const payload = {
         title,
         builder,
@@ -619,9 +704,9 @@ export function PropertiesPage() {
         bedrooms: Number(bedrooms),
         bathrooms: Number(bathrooms),
         towerName,
-        floorNumber: Number(floorNumber),
-        totalFloors: Number(totalFloors),
-        unitNumber,
+        floorNumber: primaryFloor,
+        totalFloors: floorCount,
+        unitNumber: primaryUnit,
         facing,
         status,
         published,
@@ -633,12 +718,33 @@ export function PropertiesPage() {
       }
 
       if (editingId) {
-        return updateRecord("property", editingId, payload)
+        const record = await updateRecord("property", editingId, payload)
+        return { record, generatedUnits: 0 }
       } else {
-        return createRecord("property", payload)
+        const record = await createRecord("property", payload)
+        const createdProperty = record.data as CrmRecord
+        if (!autoGenerateUnits) return { record, generatedUnits: 0 }
+        const response = await api.post<{
+          data: { requested: number; generated: number; skipped: number }
+        }>(`/v1/properties/${recordId(createdProperty)}/units/generate`, {
+          floorFrom: 1,
+          floorTo: floorCount,
+          unitsPerFloor: perFloor,
+          numberingPattern: unitNumberPattern,
+          conflictPolicy: "skip",
+          unitTemplate: {
+            bedrooms: Number(bedrooms),
+            bathrooms: Number(bathrooms),
+            carpetArea: Number(carpetArea),
+            facing,
+            listingPrice: Number(price),
+            status,
+          },
+        })
+        return { record, generatedUnits: response.data.data.requested }
       }
     },
-    onSuccess: () => {
+    onSuccess: ({ generatedUnits }) => {
       queryClient.invalidateQueries({ queryKey: ["records", "property"] })
       queryClient.invalidateQueries({ queryKey: ["sky-properties"] })
       if (activePropertyDetail && recordId(activePropertyDetail) === editingId) {
@@ -653,7 +759,13 @@ export function PropertiesPage() {
         })
         setSkyFloor(Math.min(Number(floorNumber) || 1, Math.max(1, Number(totalFloors) || 1)))
       }
-      toast.success(editingId ? "Property listing updated" : "New property cataloged")
+      toast.success(
+        editingId
+          ? "Property listing updated"
+          : generatedUnits
+            ? `Property cataloged with ${generatedUnits} units across ${totalFloors} floors`
+            : "New property cataloged",
+      )
       setBuilderOpen(false)
     },
     onError: (err) => toast.error(errorMessage(err)),
@@ -842,6 +954,35 @@ export function PropertiesPage() {
                     </div>
                   </div>
                 </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
+                  <span className="mr-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Show units
+                  </span>
+                  {([
+                    ["all", `All (${skyStats.total})`],
+                    ["available", `Available (${skyStats.available})`],
+                    ["sold", `Sold (${skyStats.sold})`],
+                  ] as const).map(([filter, label]) => (
+                    <Button
+                      key={filter}
+                      type="button"
+                      size="sm"
+                      variant={skyInventoryFilter === filter ? "default" : "outline"}
+                      className={
+                        skyInventoryFilter === filter
+                          ? filter === "sold"
+                            ? "bg-rose-600 text-white hover:bg-rose-700"
+                            : filter === "available"
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                              : "bg-black text-white hover:bg-black/85"
+                          : ""
+                      }
+                      onClick={() => setSkyInventoryFilter(filter)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -874,8 +1015,13 @@ export function PropertiesPage() {
 
                       {Array.from({ length: activeTotalFloors }, (_, idx) => activeTotalFloors - idx).map((floor) => {
                         const isSelected = skyFloor === floor
-                        const floorUnits = allUnits.filter((u) => u.floorNum === floor)
-                        const availCount = floorUnits.filter((u) => u.status === "Available").length
+                        const allFloorUnits = allUnits.filter((u) => u.floorNum === floor)
+                        const floorUnits = allFloorUnits.filter((unit) => {
+                          if (skyInventoryFilter === "available") return unit.status === "Available"
+                          if (skyInventoryFilter === "sold") return unit.status === "Sold"
+                          return true
+                        })
+                        const availCount = allFloorUnits.filter((u) => u.status === "Available").length
 
                         return (
                           <div
@@ -924,7 +1070,11 @@ export function PropertiesPage() {
                             </div>
 
                             <span className={`text-[10px] ${isSelected ? "text-black font-bold" : "text-zinc-400"}`}>
-                              {availCount} Avail
+                              {skyInventoryFilter === "sold"
+                                ? `${floorUnits.length} Sold`
+                                : skyInventoryFilter === "available"
+                                  ? `${floorUnits.length} Avail`
+                                  : `${availCount} Avail`}
                             </span>
                           </div>
                         )
@@ -942,7 +1092,8 @@ export function PropertiesPage() {
                       <div>
                         <CardTitle className="text-xl font-bold flex items-center gap-2">
                           <Building2 className="size-5 text-black" />
-                          Floor {skyFloor} Inventory ({skyActiveFloorUnits.length} Units)
+                          Floor {skyFloor} Inventory ({skyActiveFloorUnits.length}
+                          {skyInventoryFilter !== "all" ? ` ${skyInventoryFilter}` : ""} Units)
                         </CardTitle>
                         <CardDescription className="text-xs">
                           {String(activePropertyDetail?.towerName || "Tower")} &bull; Level {skyFloor} floor layout and orientations
@@ -969,11 +1120,25 @@ export function PropertiesPage() {
                           <div className="mx-auto grid size-11 place-items-center rounded-full border border-emerald-900/10 bg-emerald-100 text-emerald-700">
                             <Home className="size-5" />
                           </div>
-                          <p className="mt-3 text-sm font-semibold text-foreground">This floor has no units yet.</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Add the first flat to make it searchable and visible in the tower.</p>
-                          <Button size="sm" className="mt-4 gap-1.5" onClick={() => openUnitEditor()}>
-                            <Plus className="size-3.5" /> Add first unit to floor {skyFloor}
-                          </Button>
+                          <p className="mt-3 text-sm font-semibold text-foreground">
+                            {skyInventoryFilter === "all"
+                              ? "This floor has no units yet."
+                              : `No ${skyInventoryFilter} units on floor ${skyFloor}.`}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {skyInventoryFilter === "all"
+                              ? "Add the first flat to make it searchable and visible in the tower."
+                              : "Choose All to see the complete floor inventory."}
+                          </p>
+                          {skyInventoryFilter === "all" ? (
+                            <Button size="sm" className="mt-4 gap-1.5" onClick={() => openUnitEditor()}>
+                              <Plus className="size-3.5" /> Add first unit to floor {skyFloor}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="mt-4" onClick={() => setSkyInventoryFilter("all")}>
+                              Show all units
+                            </Button>
+                          )}
                         </div>
                       ) : skyActiveFloorUnits.map((u) => {
                         const isSelected = skyUnit === u.unitNumber
@@ -990,6 +1155,11 @@ export function PropertiesPage() {
                                 : "bg-white hover:bg-muted/40"
                             }`}
                           >
+                            {u.status === "Sold" && (
+                              <div className="-mx-3 -mt-3 mb-2 rounded-t-lg bg-rose-600 py-1 text-center text-[10px] font-black tracking-[0.22em] text-white">
+                                SOLD
+                              </div>
+                            )}
                             <div className="flex items-center justify-between">
                               <span className="font-mono font-bold text-sm text-black">Unit #{u.unitNumber}</span>
                               <div className="flex items-center gap-1">
@@ -1836,15 +2006,62 @@ export function PropertiesPage() {
       )}
 
       {/* Property & Unit Matrix Editor Dialog */}
-      <Dialog open={builderOpen} onOpenChange={setBuilderOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog
+        open={builderOpen}
+        onOpenChange={(open) => {
+          setBuilderOpen(open)
+          if (!open) setPropertyFormStep(0)
+        }}
+      >
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Property Inventory Listing" : "Add Property to Catalog"}</DialogTitle>
-            <DialogDescription>Multi-location, builder, floor level, and photo gallery manager.</DialogDescription>
+            <div className="px-6 pt-6">
+              <DialogTitle>{editingId ? "Edit Property Inventory Listing" : "Add Property to Catalog"}</DialogTitle>
+              <DialogDescription>
+                Step {propertyFormStep + 1} of {PROPERTY_FORM_STEPS.length} · {PROPERTY_FORM_STEPS[propertyFormStep].short}
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="border-y bg-zinc-50 px-6 py-4">
+            <div className="relative grid grid-cols-5">
+              <div className="absolute left-[10%] right-[10%] top-4 h-0.5 bg-zinc-200" />
+              <div
+                className="absolute left-[10%] top-4 h-0.5 bg-emerald-600 transition-all duration-300"
+                style={{ width: `${propertyFormStep * 20}%` }}
+              />
+              {PROPERTY_FORM_STEPS.map((step, index) => (
+                <button
+                  key={step.title}
+                  type="button"
+                  className="relative z-10 flex flex-col items-center gap-1.5 text-center"
+                  onClick={() => {
+                    if (index < propertyFormStep) setPropertyFormStep(index)
+                  }}
+                  disabled={index > propertyFormStep}
+                  aria-current={index === propertyFormStep ? "step" : undefined}
+                >
+                  <span className={`grid size-8 place-items-center rounded-full border-2 text-xs font-black transition-colors ${
+                    index < propertyFormStep
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : index === propertyFormStep
+                        ? "border-black bg-black text-white"
+                        : "border-zinc-300 bg-white text-zinc-400"
+                  }`}>
+                    {index < propertyFormStep ? "✓" : index + 1}
+                  </span>
+                  <span className={`hidden text-[10px] font-bold sm:block ${
+                    index === propertyFormStep ? "text-black" : "text-muted-foreground"
+                  }`}>
+                    {step.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5 text-xs">
+            <div className={propertyFormStep === 0 ? "grid gap-4 sm:grid-cols-2" : "hidden"}>
               <div>
                 <Label className="mb-1 block text-xs font-semibold">Property Title *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -1856,21 +2073,25 @@ export function PropertiesPage() {
                     <SelectValue placeholder="Select onboarded developer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Oberoi Realty">Oberoi Realty</SelectItem>
-                    <SelectItem value="Prestige Group">Prestige Group</SelectItem>
-                    <SelectItem value="Godrej Properties">Godrej Properties</SelectItem>
-                    <SelectItem value="Harbourline Holdings">Harbourline Holdings</SelectItem>
-                    <SelectItem value="Northstar Living">Northstar Living</SelectItem>
-                    <SelectItem value="Crescent Family Office">Crescent Family Office</SelectItem>
-                    <SelectItem value="DLF Limited">DLF Limited</SelectItem>
-                    <SelectItem value="Sobha Limited">Sobha Limited</SelectItem>
-                    <SelectItem value="Lodha Group">Lodha Group</SelectItem>
+                    {builder && !onboardedDevelopers.some((developer) => developer.name === builder) && (
+                      <SelectItem value={builder}>{builder} (legacy)</SelectItem>
+                    )}
+                    {onboardedDevelopers
+                      .filter((developer) => developer.status === "Active")
+                      .map((developer) => (
+                        <SelectItem key={developer.id} value={developer.name}>
+                          {developer.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+                <a href="/developers" className="mt-1 inline-flex text-[10px] font-semibold text-emerald-700 hover:underline">
+                  Onboard or manage developers
+                </a>
               </div>
             </div>
 
-            <Label className="flex items-start gap-2 rounded-xl border p-3 text-xs">
+            <Label className={propertyFormStep === 0 ? "flex items-start gap-2 rounded-xl border p-3 text-xs" : "hidden"}>
               <Checkbox checked={published} onCheckedChange={(value) => setPublished(Boolean(value))} />
               <span>
                 <strong className="block">Publish in buyer portal</strong>
@@ -1878,8 +2099,14 @@ export function PropertiesPage() {
               </span>
             </Label>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
+            <div className={
+              propertyFormStep === 0
+                ? "grid gap-4 sm:grid-cols-2"
+                : propertyFormStep === 2
+                  ? "grid gap-4"
+                  : "hidden"
+            }>
+              <div className={propertyFormStep === 0 ? "" : "hidden"}>
                 <Label className="mb-1 block text-xs font-semibold">Micro-Market / Location *</Label>
                 <Select value={location} onValueChange={setLocation}>
                   <SelectTrigger className="h-9 text-xs">
@@ -1899,7 +2126,7 @@ export function PropertiesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className={propertyFormStep === 0 ? "" : "hidden"}>
                 <Label className="mb-1 block text-xs font-semibold">Property Typology *</Label>
                 <Select value={propertyType} onValueChange={setPropertyType}>
                   <SelectTrigger className="h-9 text-xs">
@@ -1914,14 +2141,14 @@ export function PropertiesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className={propertyFormStep === 2 ? "" : "hidden"}>
                 <Label className="mb-1 block text-xs font-semibold">Listing Price (₹ INR) *</Label>
                 <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono" />
               </div>
             </div>
 
             {/* Floor level & Tower matrix */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className={propertyFormStep === 1 ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4" : "hidden"}>
               <div>
                 <Label className="mb-1 block text-xs font-semibold">Tower / Block</Label>
                 <Select value={towerName} onValueChange={setTowerName}>
@@ -1941,7 +2168,11 @@ export function PropertiesPage() {
               </div>
               <div>
                 <Label className="mb-1 block text-xs font-semibold">Floor Number</Label>
-                <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} />
+                <Input
+                  value={!editingId && autoGenerateUnits ? "1" : floorNumber}
+                  onChange={(e) => setFloorNumber(e.target.value)}
+                  disabled={!editingId && autoGenerateUnits}
+                />
               </div>
               <div>
                 <Label className="mb-1 block text-xs font-semibold">Total Floors</Label>
@@ -1949,11 +2180,64 @@ export function PropertiesPage() {
               </div>
               <div>
                 <Label className="mb-1 block text-xs font-semibold">Unit Number</Label>
-                <Input value={unitNumber} onChange={(e) => setUnitNumber(e.target.value)} />
+                <Input
+                  value={!editingId && autoGenerateUnits ? bulkUnitNumber(unitNumberPattern, 1, 1) : unitNumber}
+                  onChange={(e) => setUnitNumber(e.target.value)}
+                  disabled={!editingId && autoGenerateUnits}
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            {!editingId && propertyFormStep === 1 && (
+              <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/70 p-4">
+                <Label className="flex items-start gap-3 text-xs">
+                  <Checkbox
+                    checked={autoGenerateUnits}
+                    onCheckedChange={(value) => setAutoGenerateUnits(Boolean(value))}
+                  />
+                  <span>
+                    <strong className="block text-sm text-emerald-950">Auto-create flats on every floor</strong>
+                    Generate the complete tower inventory when this property is saved.
+                  </span>
+                </Label>
+                {autoGenerateUnits && (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr_1.2fr] sm:items-end">
+                    <div>
+                      <Label className="mb-1 block text-xs font-semibold">Units / flats per floor</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={unitsPerFloor}
+                        onChange={(event) => setUnitsPerFloor(event.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-xs font-semibold">Unit numbering pattern</Label>
+                      <Input
+                        value={unitNumberPattern}
+                        onChange={(event) => setUnitNumberPattern(event.target.value)}
+                        className="font-mono"
+                      />
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        Example: floor 14 becomes {bulkUnitNumber(unitNumberPattern, 14, 1) || "invalid"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-emerald-900 px-4 py-3 text-white">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">
+                        Inventory to create
+                      </div>
+                      <div className="mt-1 text-lg font-black">
+                        {Math.max(0, Number(totalFloors) || 0)} × {Math.max(0, Number(unitsPerFloor) || 0)} ={" "}
+                        {Math.max(0, Number(totalFloors) || 0) * Math.max(0, Number(unitsPerFloor) || 0)} units
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className={propertyFormStep === 2 ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-5" : "hidden"}>
               <div>
                 <Label className="mb-1 block text-xs">Bedrooms (BHK)</Label>
                 <Input value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
@@ -1961,6 +2245,10 @@ export function PropertiesPage() {
               <div>
                 <Label className="mb-1 block text-xs">Carpet Area (sq.ft.)</Label>
                 <Input value={carpetArea} onChange={(e) => setCarpetArea(e.target.value)} />
+              </div>
+              <div>
+                <Label className="mb-1 block text-xs">Bathrooms</Label>
+                <Input value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
               </div>
               <div>
                 <Label className="mb-1 block text-xs">Vastu Facing</Label>
@@ -1993,7 +2281,7 @@ export function PropertiesPage() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className={propertyFormStep === 3 ? "relative" : "hidden"}>
               <Label className="mb-1 block text-xs">Full Address</Label>
               <Input
                 value={address}
@@ -2032,7 +2320,7 @@ export function PropertiesPage() {
               <p className="mt-1 text-[10px] text-muted-foreground">Address data © OpenStreetMap contributors via Geoapify.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={propertyFormStep === 3 ? "grid grid-cols-2 gap-3" : "hidden"}>
               <div>
                 <Label className="mb-1 block text-xs">Map Latitude</Label>
                 <Input value={latitude} onChange={(event) => setLatitude(event.target.value)} inputMode="decimal" placeholder="19.0760" />
@@ -2043,26 +2331,114 @@ export function PropertiesPage() {
               </div>
             </div>
 
-            <div>
+            <div className={propertyFormStep === 3 ? "" : "hidden"}>
               <Label className="mb-1 block text-xs">RERA Registration Number</Label>
               <Input value={reraId} onChange={(e) => setReraId(e.target.value)} className="font-mono" />
             </div>
 
-            <div>
+            <div className={propertyFormStep === 3 ? "" : "hidden"}>
               <Label className="mb-1 block text-xs">Property Description & Highlights</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
+
+            {propertyFormStep === 4 && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-black p-5 text-white">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Ready to create</p>
+                      <h3 className="mt-1 text-xl font-black">{title || "Untitled property"}</h3>
+                      <p className="mt-1 text-zinc-300">{builder} · {location}</p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-[10px] uppercase tracking-widest text-zinc-400">Listing price</p>
+                      <p className="text-xl font-black text-emerald-300">{formatINR(price)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Property</p>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                      <dt className="text-muted-foreground">Typology</dt><dd className="font-semibold">{propertyType}</dd>
+                      <dt className="text-muted-foreground">Developer</dt><dd className="font-semibold">{builder}</dd>
+                      <dt className="text-muted-foreground">RERA</dt><dd className="break-all font-mono">{reraId || "Not provided"}</dd>
+                      <dt className="text-muted-foreground">Portal</dt><dd className="font-semibold">{published ? "Published" : "Private draft"}</dd>
+                    </dl>
+                  </div>
+                  <div className="rounded-xl border p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tower inventory</p>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                      <dt className="text-muted-foreground">Structure</dt><dd className="font-semibold">{towerName}</dd>
+                      <dt className="text-muted-foreground">Floors</dt><dd className="font-semibold">{totalFloors}</dd>
+                      <dt className="text-muted-foreground">Units per floor</dt><dd className="font-semibold">{autoGenerateUnits && !editingId ? unitsPerFloor : "Manual"}</dd>
+                      <dt className="text-muted-foreground">Total units</dt>
+                      <dd className="font-black text-emerald-700">
+                        {autoGenerateUnits && !editingId
+                          ? (Number(totalFloors) || 0) * (Number(unitsPerFloor) || 0)
+                          : 1}
+                      </dd>
+                    </dl>
+                  </div>
+                  <div className="rounded-xl border p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Unit template</p>
+                    <p className="mt-3 font-semibold">{bedrooms || 0} BHK · {bathrooms || 0} baths · {carpetArea || 0} sq.ft.</p>
+                    <p className="mt-1 text-muted-foreground">{facing} facing · Initial status: {status}</p>
+                  </div>
+                  <div className="rounded-xl border p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Location</p>
+                    <p className="mt-3 font-semibold">{address || location}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {latitude && longitude ? `${latitude}, ${longitude}` : "Map coordinates not set"}
+                    </p>
+                  </div>
+                </div>
+
+                {!editingId && autoGenerateUnits && (
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                    <div>
+                      <p className="font-bold">
+                        This will atomically create {(Number(totalFloors) || 0) * (Number(unitsPerFloor) || 0)} units.
+                      </p>
+                      <p className="mt-1 text-[11px]">
+                        Unit numbers run from {bulkUnitNumber(unitNumberPattern, 1, 1)} to{" "}
+                        {bulkUnitNumber(unitNumberPattern, Number(totalFloors) || 1, Number(unitsPerFloor) || 1)}.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBuilderOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-black text-white hover:bg-black/90"
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-            >
-              {saveMutation.isPending ? "Saving..." : "Save Property"}
-            </Button>
+          <DialogFooter className="border-t bg-white px-6 py-4 sm:justify-between">
+            <Button variant="ghost" onClick={() => setBuilderOpen(false)}>Cancel</Button>
+            <div className="flex items-center gap-2">
+              {propertyFormStep > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setPropertyFormStep((step) => Math.max(0, step - 1))}
+                  disabled={saveMutation.isPending}
+                >
+                  <ChevronLeft className="mr-1 size-4" /> Back
+                </Button>
+              )}
+              {propertyFormStep < PROPERTY_FORM_STEPS.length - 1 ? (
+                <Button className="bg-black text-white hover:bg-black/90" onClick={goToNextPropertyStep}>
+                  Continue <ChevronRight className="ml-1 size-4" />
+                </Button>
+              ) : (
+                <Button
+                  className="bg-emerald-700 text-white hover:bg-emerald-800"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                >
+                  {saveMutation.isPending ? "Creating property..." : editingId ? "Save changes" : "Create property & inventory"}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,6 @@
 import request from "supertest"
 import { createHmac, randomUUID } from "node:crypto"
-import { afterAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import prisma from "../db/prisma.js"
 import app from "./server.js"
 import { signToken } from "./auth.js"
@@ -247,6 +247,41 @@ describe("MooNsEstate API", () => {
         .set("Authorization", `Bearer ${token}`)
       expect(removedUnit.status).toBe(204)
 
+      const generatedTower = await request(app)
+        .post(`/api/v1/properties/${propertyId}/units/generate`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          floorFrom: 1,
+          floorTo: 30,
+          unitsPerFloor: 4,
+          numberingPattern: "{floor}{sequence:02}",
+          conflictPolicy: "skip",
+          unitTemplate: {
+            bedrooms: 3,
+            bathrooms: 3,
+            carpetArea: 1850,
+            listingPrice: 40000000,
+            facing: "East",
+            status: "Available",
+          },
+        })
+      expect(generatedTower.status).toBe(201)
+      expect(generatedTower.body.data).toEqual(expect.objectContaining({
+        requested: 120,
+        generated: 119,
+        skipped: 1,
+        floors: 30,
+      }))
+      const generatedInventory = await request(app)
+        .get(`/api/v1/properties/${propertyId}/inventory`)
+        .set("Authorization", `Bearer ${token}`)
+      expect(generatedInventory.status).toBe(200)
+      expect(generatedInventory.body.data.units).toHaveLength(120)
+      expect(generatedInventory.body.data.units).toEqual(expect.arrayContaining([
+        expect.objectContaining({ floorNumber: 1, unitNumber: "101" }),
+        expect.objectContaining({ floorNumber: 30, unitNumber: "3004" }),
+      ]))
+
       await prisma.membership.update({
         where: {
           organizationId_userId: {
@@ -284,12 +319,242 @@ describe("MooNsEstate API", () => {
       await prisma.propertyUnit.deleteMany({ where: { organizationId: organization.id } })
       await prisma.propertyFloor.deleteMany({ where: { organizationId: organization.id } })
       await prisma.propertyTower.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryUnit.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryLevel.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryStructure.deleteMany({ where: { organizationId: organization.id } })
       await prisma.realEstateProject.deleteMany({ where: { organizationId: organization.id } })
       await prisma.property.deleteMany({ where: { organizationId: organization.id } })
       await prisma.conversation.deleteMany({ where: { organizationId: organization.id } })
       await prisma.lead.deleteMany({ where: { organizationId: organization.id } })
       await prisma.organization.delete({ where: { id: organization.id } })
       await prisma.user.delete({ where: { id: user.id } })
+    }
+  })
+})
+
+describe("operational inventory and agreement reporting", () => {
+  beforeAll(async () => {
+    await prisma.$connect()
+  })
+
+  it("generates a tower atomically, prevents double-selling, and reconciles management KPIs", async () => {
+    const suffix = randomUUID()
+    const user = await prisma.user.create({
+      data: {
+        username: `operations-${suffix}@example.test`,
+        password: "test-only-password-hash",
+        role: "user",
+      },
+    })
+    const organization = await prisma.organization.create({
+      data: {
+        name: `Operations ${suffix}`,
+        slug: `operations-${suffix}`,
+        currency: "INR",
+        timezone: "Asia/Kolkata",
+      },
+    })
+    const plan = await prisma.plan.findUniqueOrThrow({ where: { code: "starter" } })
+    await Promise.all([
+      prisma.membership.create({
+        data: {
+          organizationId: organization.id,
+          userId: user.id,
+          role: "organization_owner",
+        },
+      }),
+      prisma.subscription.create({
+        data: {
+          organizationId: organization.id,
+          planId: plan.id,
+          provider: "razorpay",
+          status: "trialing",
+          trialEndsAt: new Date(Date.now() + 24 * 60 * 60_000),
+        },
+      }),
+    ])
+    const token = signToken(user.id, user.role)
+
+    try {
+      const developerResponse = await request(app)
+        .post("/api/v1/developers")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          name: `MooN Developments ${suffix}`,
+          legalName: `MooN Developments Private Limited ${suffix}`,
+          profileType: "Builder & Developer",
+          reraRegistration: `DEV-RERA-${suffix}`,
+          gstin: "27AAAAA0000A1Z5",
+          contactPerson: "Development Partner",
+          email: `developer-${suffix}@example.test`,
+          status: "Active",
+        })
+      expect(developerResponse.status).toBe(201)
+
+      const projectResponse = await request(app)
+        .post("/api/v1/projects")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          name: `Manager Tower ${suffix}`,
+          developerId: developerResponse.body.data.id,
+          location: "Mumbai",
+          reraId: `RERA-${suffix}`,
+        })
+      expect(projectResponse.status).toBe(201)
+      const projectId = projectResponse.body.data.id as string
+
+      const generationRequest = {
+        structure: { name: "Tower X", kind: "Tower", totalLevels: 2 },
+        floorRange: { from: 1, to: 2 },
+        excludedFloors: [],
+        unitsPerFloor: 2,
+        numbering: { pattern: "{floor}{sequence:02}", prefix: "", suffix: "" },
+        unitTemplate: {
+          unitType: "2 BHK",
+          bedrooms: 2,
+          carpetArea: 900,
+          listingPrice: 10_000_000,
+          baseCost: 7_000_000,
+          status: "Available",
+        },
+        exceptions: [],
+      }
+      const preview = await request(app)
+        .post(`/api/v1/projects/${projectId}/inventory/generation-preview`)
+        .set("Authorization", `Bearer ${token}`)
+        .send(generationRequest)
+      expect(preview.status).toBe(200)
+      expect(preview.body.data.summary).toEqual(expect.objectContaining({
+        floors: 2,
+        units: 4,
+        conflicts: 0,
+      }))
+      expect(preview.body.data.units.map((unit: { unitNumber: string }) => unit.unitNumber))
+        .toEqual(["101", "102", "201", "202"])
+
+      const idempotencyKey = randomUUID()
+      const commit = await request(app)
+        .post(`/api/v1/projects/${projectId}/inventory/generation-commit`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          previewToken: preview.body.data.previewToken,
+          idempotencyKey,
+          conflictPolicy: "reject",
+        })
+      expect(commit.status).toBe(201)
+      expect(commit.body.data.createdUnitCount).toBe(4)
+      const replay = await request(app)
+        .post(`/api/v1/projects/${projectId}/inventory/generation-commit`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          previewToken: preview.body.data.previewToken,
+          idempotencyKey,
+          conflictPolicy: "reject",
+        })
+      expect(replay.status).toBe(200)
+      expect(replay.body.idempotentReplay).toBe(true)
+
+      const inventory = await request(app)
+        .get(`/api/v1/projects/${projectId}/inventory`)
+        .set("Authorization", `Bearer ${token}`)
+      expect(inventory.status).toBe(200)
+      const unit = inventory.body.data.structures[0].levels[0].units[0]
+      expect(unit.unitNumber).toBe("101")
+
+      const firstDeal = await request(app)
+        .post("/api/v1/deals")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          unitId: unit.id,
+          grossPrice: 10_000_000,
+          discount: 500_000,
+          baseCost: 7_000_000,
+          brokerage: 100_000,
+          directExpenses: 200_000,
+          agencyCommission: 150_000,
+        })
+      expect(firstDeal.status).toBe(201)
+      const firstDealId = firstDeal.body.data.id as string
+      const reserved = await request(app)
+        .post(`/api/v1/deals/${firstDealId}/reserve`)
+        .set("Authorization", `Bearer ${token}`)
+      expect(reserved.status).toBe(200)
+
+      const competingDeal = await request(app)
+        .post("/api/v1/deals")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ unitId: unit.id, grossPrice: 10_000_000 })
+      const competingReservation = await request(app)
+        .post(`/api/v1/deals/${competingDeal.body.data.id}/reserve`)
+        .set("Authorization", `Bearer ${token}`)
+      expect(competingReservation.status).toBe(409)
+
+      const executedAt = new Date()
+      const executed = await request(app)
+        .post(`/api/v1/deals/${firstDealId}/execute`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          agreementNumber: `AGR-${suffix}`,
+          agreementExecutedAt: executedAt.toISOString(),
+        })
+      expect(executed.status).toBe(200)
+      expect(executed.body.data.developerGrossProfit).toBe(2_200_000)
+
+      const payment = await request(app)
+        .post(`/api/v1/deals/${firstDealId}/payments`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          amount: 1_000_000,
+          reference: `PAY-${suffix}`,
+          paidAt: executedAt.toISOString(),
+          status: "Confirmed",
+        })
+      expect(payment.status).toBe(201)
+
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(executedAt)
+      const summary = await request(app)
+        .get(`/api/v1/reports/sales-summary?from=${today}&to=${today}`)
+        .set("Authorization", `Bearer ${token}`)
+      expect(summary.status).toBe(200)
+      expect(summary.body.data.kpis).toEqual(expect.objectContaining({
+        unitsSold: 1,
+        netSales: 9_500_000,
+        developerGrossProfit: 2_200_000,
+        agencyCommission: 150_000,
+        collections: 1_000_000,
+        cancellations: 0,
+        averageSellingPrice: 9_500_000,
+      }))
+      expect(summary.body.data.deals).toHaveLength(1)
+    } finally {
+      const deals = await prisma.salesDeal.findMany({
+        where: { organizationId: organization.id },
+        select: { id: true },
+      })
+      await prisma.dealPayment.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.dealExpense.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.auditEvent.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.salesDeal.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryGenerationBatch.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryUnit.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryLevel.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.inventoryStructure.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.realEstateProject.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.developerProfile.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.reconciliationItem.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.subscription.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.membership.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.rolePermission.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.role.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.permission.deleteMany({ where: { organizationId: organization.id } })
+      await prisma.organization.delete({ where: { id: organization.id } })
+      await prisma.user.delete({ where: { id: user.id } })
+      expect(deals).toEqual(expect.any(Array))
     }
   })
 })

@@ -3,23 +3,15 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "workspaces": [
-    "client",
-    "server"
-  ],
   "engines": {
     "node": ">=22.22.0 <23"
   },
   "scripts": {
-    "dev": "concurrently -k -n client,api -c cyan,green \"npm:dev:client\" \"npm:dev:server\"",
-    "dev:client": "npm run dev --workspace moonestates-client",
-    "dev:server": "npm run dev --workspace moonestates-server",
-    "build": "npm run build --workspaces --if-present",
-    "prisma:generate": "npm run prisma:generate --workspace moonestates-server",
-    "prisma:push": "npm run prisma:push --workspace moonestates-server"
-  },
-  "devDependencies": {
-    "concurrently": "9.2.4",
-    "typescript": "5.9.3"
+    "dev": "npx -y concurrently -k -n client,api -c cyan,green \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix client run build && npm --prefix server run build",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:push": "npm --prefix server run prisma:push"
   }
 }

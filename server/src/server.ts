@@ -23,6 +23,7 @@ import { billingRouter } from "./routes/billing.js"
 import { communicationsRouter } from "./routes/communications.js"
 import { coreRouter } from "./routes/core.js"
 import { metaRouter } from "./routes/meta.js"
+import { operationsRouter } from "./routes/operations.js"
 import { portalRouter } from "./routes/portal.js"
 import { webhooksRouter } from "./routes/webhooks.js"
 import { ensureDefaultWorkspace } from "./tenancy.js"
@@ -284,7 +285,7 @@ app.delete("/api/user/delete/:id", requireAuth, requireAdmin, async (req: AuthRe
   } catch (error) { next(error) }
 })
 
-app.use("/api/v1", portalRouter, coreRouter, communicationsRouter, metaRouter, billingRouter)
+app.use("/api/v1", portalRouter, operationsRouter, coreRouter, communicationsRouter, metaRouter, billingRouter)
 
 const crudRoutes: Array<[string, string]> = [
   ["lead", "Lead"],
@@ -506,7 +507,6 @@ app.get("/api/route", requireAuth, (_req, res) => res.json({
 }))
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(error)
   if (error instanceof ZodError) {
     res.status(400).json({
       error: "Request validation failed",
@@ -515,7 +515,13 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     return
   }
   const message = error instanceof Error ? error.message : "Unexpected server error"
-  const status = message.includes("Unique constraint") ? 409 : 500
+  const explicitStatus = typeof error === "object" && error !== null && "status" in error
+    ? Number((error as { status?: unknown }).status)
+    : Number.NaN
+  const status = Number.isInteger(explicitStatus) && explicitStatus >= 400 && explicitStatus < 600
+    ? explicitStatus
+    : message.includes("Unique constraint") ? 409 : 500
+  if (status >= 500) console.error(error)
   res.status(status).json({ error: status === 500 ? "The server could not complete the request" : message })
 })
 
