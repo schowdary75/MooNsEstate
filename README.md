@@ -12,6 +12,7 @@
   <a href="https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml"><img src="https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Source--Available-2ea44f.svg" alt="License: Source-Available" /></a>
   <a href=".nvmrc"><img src="https://img.shields.io/badge/node-22.22%2B-339933?logo=nodedotjs&amp;logoColor=white" alt="Node 22.22+" /></a>
+  <a href="https://github.com/sponsors/schowdary75"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=flat-square&amp;logo=githubsponsors&amp;logoColor=white" alt="Sponsor schowdary75" /></a>
   <a href="https://github.com/schowdary75/MooNsEstate"><img src="https://img.shields.io/badge/%E2%AD%90-star_this_repo-f5b301" alt="Star" /></a>
   <a href="https://github.com/schowdary75/MooNsEstate/fork"><img src="https://img.shields.io/badge/%F0%9F%8D%B4-fork_to_contribute-2563eb" alt="Fork" /></a>
 </p>
@@ -165,6 +166,22 @@ Useful links: [open an issue](https://github.com/schowdary75/MooNsEstate/issues/
 Do not report vulnerabilities in a public issue. Follow the private disclosure
 process in [SECURITY.md](SECURITY.md). For normal questions, see
 [SUPPORT.md](SUPPORT.md).
+
+---
+
+## 💖 Support & Sponsorship
+
+If you find **MooNsEstate** valuable for your real-estate workflows, architecture research, or personal development, please consider supporting ongoing open-source engineering through **[GitHub Sponsors](https://github.com/sponsors/schowdary75)**.
+
+> *"Your sponsorship directly fuels independent research, infrastructure upkeep, security hardening, and continuous feature delivery across the MooNs ecosystem."*
+
+<p align="left">
+  <a href="https://github.com/sponsors/schowdary75">
+    <img src="https://img.shields.io/badge/Sponsor_schowdary75-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor schowdary75 on GitHub Sponsors" />
+  </a>
+</p>
+
+---
 
 ## License & Branding Protection
 
