@@ -1,17 +1,20 @@
-<div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
-    <img src="docs/images/logo.png" alt="MooN logo" width="220">
-  </picture>
-  <h1>MooNsEstate</h1>
-  <p>A modern, full-stack real-estate CRM for leads, properties, conversations, billing, and team workflows.</p>
+<p align="center">
+  <img src="docs/images/logo.png" alt="MooN logo" width="220" />
+</p>
 
-  [![CI](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml/badge.svg)](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml)
-  [![License: Source-Available](https://img.shields.io/badge/license-Source--Available-2ea44f.svg)](LICENSE)
-  [![Node 22.22+](https://img.shields.io/badge/node-22.22%2B-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
-  [![Star](https://img.shields.io/badge/%E2%AD%90-star_this_repo-f5b301)](https://github.com/schowdary75/MooNsEstate)
-  [![Fork](https://img.shields.io/badge/%F0%9F%8D%B4-fork_to_contribute-2563eb)](https://github.com/schowdary75/MooNsEstate/fork)
-</div>
+<h1 align="center">MooNsEstate</h1>
+
+<p align="center">
+  <strong>A modern, full-stack real-estate CRM for leads, properties, conversations, billing, and team workflows.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml"><img src="https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Source--Available-2ea44f.svg" alt="License: Source-Available" /></a>
+  <a href=".nvmrc"><img src="https://img.shields.io/badge/node-22.22%2B-339933?logo=nodedotjs&amp;logoColor=white" alt="Node 22.22+" /></a>
+  <a href="https://github.com/schowdary75/MooNsEstate"><img src="https://img.shields.io/badge/%E2%AD%90-star_this_repo-f5b301" alt="Star" /></a>
+  <a href="https://github.com/schowdary75/MooNsEstate/fork"><img src="https://img.shields.io/badge/%F0%9F%8D%B4-fork_to_contribute-2563eb" alt="Fork" /></a>
+</p>
 
 > [!IMPORTANT]
 > **Forking, Licensing & Branding Policy:**
