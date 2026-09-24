@@ -1,18 +1,23 @@
 <div align="center">
-  <img src="client/src/assets/img/moon_logo.svg" alt="MooNsEstate logo" width="120">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
+    <img src="docs/images/logo.png" alt="MooN logo" width="220">
+  </picture>
   <h1>MooNsEstate</h1>
-  <p>A private, full-stack real-estate CRM for leads, properties, conversations, billing, and team workflows.</p>
+  <p>A modern, full-stack real-estate CRM for leads, properties, conversations, billing, and team workflows.</p>
 
   [![CI](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml/badge.svg)](https://github.com/schowdary75/MooNsEstate/actions/workflows/ci.yml)
-  [![MIT License](https://img.shields.io/badge/license-MIT-7c3aed.svg)](LICENSE)
+  [![License: Source-Available](https://img.shields.io/badge/license-Source--Available-2ea44f.svg)](LICENSE)
   [![Node 22.22+](https://img.shields.io/badge/node-22.22%2B-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
-  [![Private repository](https://img.shields.io/badge/repository-private-111827?logo=github)](SECURITY.md)
   [![Star](https://img.shields.io/badge/%E2%AD%90-star_this_repo-f5b301)](https://github.com/schowdary75/MooNsEstate)
   [![Fork](https://img.shields.io/badge/%F0%9F%8D%B4-fork_to_contribute-2563eb)](https://github.com/schowdary75/MooNsEstate/fork)
 </div>
 
 > [!IMPORTANT]
-> This is a private repository. Do not copy customer data, production database exports, API keys, passwords, `.env` files, or provider credentials into commits, issues, pull requests, screenshots, or logs.
+> **Forking, Licensing & Branding Policy:**
+> Developers and teams are welcome to fork this repository and develop locally under the [MooNs Source-Available Community License](LICENSE).
+> **Removing or altering our licenses, copyright notices, trademarks, or MooNs branding is strictly illegal.**
+> Any fork, modification, or derivative project MUST retain full MooNs branding, logos, and licensing intact. Sublicensing or relicensing under MIT or other permissive licenses is strictly prohibited. Commercial SaaS hosting or production deployment requires prior written agreement from MooNs.
 
 ## What is included
 
@@ -158,6 +163,13 @@ Do not report vulnerabilities in a public issue. Follow the private disclosure
 process in [SECURITY.md](SECURITY.md). For normal questions, see
 [SUPPORT.md](SUPPORT.md).
 
-## License
+## License & Branding Protection
 
-Licensed under the [MIT License](LICENSE).
+Copyright &copy; 2026 **MooNs** / **MooNsEstate**. All Rights Reserved.
+
+MooNsEstate is distributed under the **[MooNs Source-Available Community License](LICENSE)**:
+
+1. **Forking & Local Development:** You are free to fork this repository, clone it, develop with it, and test it locally for personal and non-commercial evaluation.
+2. **Preservation of Branding & Licensing:** Any fork or modification MUST retain all MooNs branding, logos, and licenses. Removing, obscuring, or stripping MooNs branding or copyright notices is **strictly illegal** and constitutes intentional copyright and trademark infringement.
+3. **No Unlicensed Relicensing:** Forks cannot be relicensed under MIT, Apache, GPL, or any other permissive or alternative license.
+4. **Commercial Hosting Restricted:** Multi-tenant SaaS hosting or commercial production deployment requires prior written agreement from MooNs.

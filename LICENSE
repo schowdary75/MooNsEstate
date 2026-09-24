@@ -1,21 +1,69 @@
-MIT License
+MooNs Source-Available Community License v1.0
+(Local Development, Research & Non-Commercial Evaluation License)
 
-Copyright (c) 2026 MooNsEstate contributors
+Copyright (c) 2026 MooNs / MooNsEstate (https://github.com/schowdary75/MooNsEstate).
+All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+================================================================================
+TERMS AND CONDITIONS FOR ACCESS, LOCAL DEVELOPMENT, FORKING, AND EVALUATION
+================================================================================
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. PREAMBLE
+   MooNsEstate ("the Software") is made available publicly by MooNs for
+   community evaluation, educational inspection, and local software development.
+   The Software is NOT permissive open-source; it is governed exclusively by
+   this Source-Available Community License.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. GRANT OF FORKING & LOCAL DEVELOPMENT LICENSE
+   Subject to your full compliance with all terms of this Agreement, Licensor
+   hereby grants you a personal, worldwide, non-exclusive, non-transferable,
+   revocable, royalty-free license to:
+   (a) Fork the repository on GitHub and clone the Source Code;
+   (b) Build, test, run, and develop with the Software SOLELY on local machines
+       or local sandbox environments for personal development, testing, educational
+       study, non-commercial research, and internal architectural evaluation.
+
+3. FORKING, BRANDING & STRICT LEGAL NOTICE
+   (a) MANDATORY BRANDING & ATTRIBUTION:
+       Any party that forks, branches, develops, or modifies this Software MUST
+       prominently preserve and display all original MooNs branding, wordmarks
+       ("MooNs", "MooNsEstate"), official logos, header badges, copyright notices,
+       and license files in all views, documentation, headers, and user interfaces.
+   (b) REMOVAL OF LICENSES OR BRANDING IS ILLEGAL:
+       Removing, stripping, renaming, obscuring, or altering our licenses,
+       copyright notices, trademarks, or MooNs branding from the Software or any
+       fork is STRICTLY PROHIBITED AND ILLEGAL under applicable intellectual
+       property laws, trademark statutes, and international copyright conventions.
+   (c) NO RELICENSING:
+       You may NOT relicense the Software or any fork/derivative work under MIT,
+       Apache, GPL, BSD, proprietary, or any other license. All forks and
+       modifications remain strictly governed by this exact License.
+   (d) NO CLAIM OF AUTHORSHIP:
+       Forking parties may not represent themselves as the original creators or
+       publishers of the Software, nor use the MooNs name or brand to endorse
+       unrelated commercial products without prior written authorization.
+
+4. STRICT PROHIBITIONS & COMMERCIAL RESTRICTIONS
+   Without express prior written agreement from MooNs, you may NOT:
+   (a) Deploy, run, host, or execute the Software (or any derivative work) as a
+       publicly accessible network service, Software-as-a-Service (SaaS), cloud
+       application, or commercial multi-tenant real-estate management system;
+   (b) Monetize, sell, rent, lease, sublicense, or distribute the Software or
+       any part thereof for commercial gain or third-party client servicing.
+
+5. RESERVATION OF RIGHTS
+   All title, ownership, copyright, intellectual property rights, and trademarks
+   in and to the Software and its branding remain solely and exclusively with
+   MooNs. All rights not expressly granted in Section 2 are strictly reserved.
+
+6. TERMINATION
+   Your rights under this License terminate automatically and immediately upon
+   any breach of its terms. Any unauthorized removal of branding or license texts
+   constitutes intentional copyright and trademark infringement.
+
+7. DISCLAIMER OF WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY ARISING FROM OR IN CONNECTION WITH THE SOFTWARE.
